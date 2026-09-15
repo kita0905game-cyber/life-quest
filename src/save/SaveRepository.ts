@@ -10,6 +10,14 @@ export type LifeQuestSave = {
   gears: number;
   discoveries: number;
   loot: number;
+  xp: number;
+  gold: number;
+  bossHp: number;
+  rocksBroken: number;
+  casts: number;
+  crafted: number;
+  exploredLocations: Record<string, number>;
+  guildRewardClaimed: boolean;
 };
 
 const KEY = 'life-quest-save-v1';
@@ -25,7 +33,15 @@ const initialSave: LifeQuestSave = {
   fishRecords: {},
   gears: 0,
   discoveries: 0,
-  loot: 0
+  loot: 0,
+  xp: 0,
+  gold: 120,
+  bossHp: 300,
+  rocksBroken: 0,
+  casts: 0,
+  crafted: 0,
+  exploredLocations: {},
+  guildRewardClaimed: false
 };
 
 export interface SaveRepository {
@@ -38,7 +54,13 @@ export class LocalStorageSaveRepository implements SaveRepository {
     try {
       const raw = localStorage.getItem(KEY);
       const parsed = raw ? JSON.parse(raw) as Partial<LifeQuestSave> : {};
-      return { ...initialSave, ...parsed, version: 1, fishRecords: { ...initialSave.fishRecords, ...parsed.fishRecords } };
+      return {
+        ...initialSave,
+        ...parsed,
+        version: 1,
+        fishRecords: { ...initialSave.fishRecords, ...parsed.fishRecords },
+        exploredLocations: { ...initialSave.exploredLocations, ...parsed.exploredLocations }
+      };
     } catch {
       return { ...initialSave };
     }

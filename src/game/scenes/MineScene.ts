@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { loadSave, updateSave } from '../../save/SaveRepository';
 import { addBackButton, addTitle } from './ui';
+import { reward } from '../systems/progression';
 
 export class MineScene extends Phaser.Scene {
   private hp = 3;
@@ -49,14 +50,15 @@ export class MineScene extends Phaser.Scene {
     }
 
     const foundIron = Phaser.Math.Between(1, 100) <= 45;
-    updateSave((current) => ({
+    updateSave((current) => reward({
       ...current,
       depth: current.depth + 1,
       stone: current.stone + 1,
-      iron: current.iron + (foundIron ? 1 : 0)
-    }));
+      iron: current.iron + (foundIron ? 1 : 0),
+      rocksBroken: current.rocksBroken + 1
+    }, 10, 8));
 
-    this.infoText?.setText(foundIron ? '鉄鉱石を発見！' : '石を発見！');
+    this.infoText?.setText(foundIron ? '鉄鉱石！ XP+10 / 8G' : '石！ XP+10 / 8G');
     this.hp = 3;
     this.refresh();
   }

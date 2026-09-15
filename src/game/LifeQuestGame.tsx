@@ -5,6 +5,11 @@ import { MineScene } from './scenes/MineScene';
 import { FishingScene } from './scenes/FishingScene';
 import { WorkshopScene } from './scenes/WorkshopScene';
 import { ExploreScene } from './scenes/ExploreScene';
+import { MuseumScene } from './scenes/MuseumScene';
+import { BossScene } from './scenes/BossScene';
+import { RecordsScene } from './scenes/RecordsScene';
+import { GuildScene } from './scenes/GuildScene';
+import { HouseScene } from './scenes/HouseScene';
 
 export default function LifeQuestGame() {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -18,7 +23,7 @@ export default function LifeQuestGame() {
       width: 390,
       height: 680,
       backgroundColor: '#10241f',
-      scene: [TownScene, MineScene, FishingScene, WorkshopScene, ExploreScene],
+      scene: [TownScene, MineScene, FishingScene, WorkshopScene, ExploreScene, MuseumScene, BossScene, RecordsScene, GuildScene, HouseScene],
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH

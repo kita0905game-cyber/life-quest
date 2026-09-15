@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { updateSave } from '../../save/SaveRepository';
 import { addBackButton, addTitle } from './ui';
+import { reward } from '../systems/progression';
+import { fishCatalog } from '../data/gameData';
 
 export class FishingScene extends Phaser.Scene {
   constructor() { super('FishingScene'); }
@@ -33,6 +35,7 @@ export class FishingScene extends Phaser.Scene {
       bite = false;
       bobber.setVisible(true).setPosition(Phaser.Math.Between(135, 255), Phaser.Math.Between(350, 455));
       result.setText('浮きを見て待つ…');
+      updateSave((save) => ({ ...save, casts: save.casts + 1 }));
       this.time.delayedCall(Phaser.Math.Between(700, 1600), () => {
         bite = true;
         bobber.setFillStyle(0xffd45c);
@@ -45,15 +48,14 @@ export class FishingScene extends Phaser.Scene {
         result.setText('まだ早い…');
         return;
       }
-      const fishes = ['アユ', 'コイ', 'ニジマス', 'ヤマメ'];
-      const caught = Phaser.Utils.Array.GetRandom(fishes);
+      const caught = Phaser.Utils.Array.GetRandom([...fishCatalog]);
       const size = Phaser.Math.Between(18, 54);
-      const updated = updateSave((save) => ({
+      const updated = updateSave((save) => reward({
         ...save,
         fishCaught: save.fishCaught + 1,
         fishRecords: { ...save.fishRecords, [caught]: Math.max(save.fishRecords[caught] ?? 0, size) }
-      }));
-      result.setText(`${caught} ${size}cmを釣った！\n自己最大 ${updated.fishRecords[caught]}cm`);
+      }, 12, 15));
+      result.setText(`${caught} ${size}cm！\n自己最大 ${updated.fishRecords[caught]}cm · XP+12`);
       waiting = false;
       bite = false;
       bobber.setVisible(false).setFillStyle(0xf6eee0);

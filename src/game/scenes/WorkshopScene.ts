@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { loadSave, updateSave } from '../../save/SaveRepository';
 import { addBackButton, addTitle } from './ui';
+import { reward } from '../systems/progression';
 
 export class WorkshopScene extends Phaser.Scene {
   constructor() { super('WorkshopScene'); }
@@ -25,7 +26,7 @@ export class WorkshopScene extends Phaser.Scene {
         status.setText(`精錬には鉄鉱石2個必要 / 現在 ${save.iron}`);
         return;
       }
-      updateSave((current) => ({ ...current, iron: current.iron - 2, ingots: current.ingots + 1 }));
+      updateSave((current) => reward({ ...current, iron: current.iron - 2, ingots: current.ingots + 1, crafted: current.crafted + 1 }, 8, 5));
       status.setText('鉄インゴットを1個精錬した！');
     });
     bench.on('pointerup', () => {
@@ -34,7 +35,7 @@ export class WorkshopScene extends Phaser.Scene {
         status.setText(`ギアにはインゴット2個必要 / 現在 ${save.ingots}`);
         return;
       }
-      updateSave((current) => ({ ...current, ingots: current.ingots - 2, gears: current.gears + 1 }));
+      updateSave((current) => reward({ ...current, ingots: current.ingots - 2, gears: current.gears + 1, crafted: current.crafted + 1 }, 18, 12));
       status.setText('ギアを1個製作した！');
     });
   }
