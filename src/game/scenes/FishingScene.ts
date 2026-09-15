@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
-import { updateSave } from '../../save/SaveRepository';
+import { loadSave, updateSave } from '../../save/SaveRepository';
 import { addBackButton, addTitle } from './ui';
-import { reward } from '../systems/progression';
 import { fishCatalog } from '../data/gameData';
 
 export class FishingScene extends Phaser.Scene {
@@ -37,6 +36,7 @@ export class FishingScene extends Phaser.Scene {
 
     cast.on('pointerup', () => {
       if (waiting) return;
+      if (loadSave().bait <= 0) { result.setText('釣りエサが足りない'); return; }
       waiting = true;
       bite = false;
       bobber.setVisible(true).setPosition(Phaser.Math.Between(135, 255), Phaser.Math.Between(350, 455));
@@ -57,14 +57,17 @@ export class FishingScene extends Phaser.Scene {
         result.setText('まだ早い…');
         return;
       }
-      const caught = Phaser.Utils.Array.GetRandom([...fishCatalog]);
-      const size = Phaser.Math.Between(18, 54);
-      const updated = updateSave((save) => reward({
+      const now = new Date(); const night = now.getHours() >= 19 || now.getHours() < 5; const autumn = now.getMonth() >= 8 && now.getMonth() <= 10;
+      const weights: Record<string, number> = { メダカ:22,フナ:18,コイ:12,ブラックバス:10,アジ:12,サバ:10,タイ:5,サケ:autumn?7:2,ウナギ:night?8:3,金魚:4,ニジマス:4,月影ゴイ:night?2:.5 };
+      const total = Object.values(weights).reduce((a,b)=>a+b,0); let roll = Math.random()*total; let caught: string = fishCatalog[0];
+      for (const fishName of fishCatalog) { roll -= weights[fishName]; if (roll <= 0) { caught = fishName; break; } }
+      const size = Phaser.Math.Between(8, 95);
+      const updated = updateSave((save) => ({
         ...save,
-        fishCaught: save.fishCaught + 1,
+        bait: save.bait - 1, fishCaught: save.fishCaught + 1,
         fishRecords: { ...save.fishRecords, [caught]: Math.max(save.fishRecords[caught] ?? 0, size) }
-      }, 12, 15));
-      result.setText(`${caught} ${size}cm！\n自己最大 ${updated.fishRecords[caught]}cm · XP+12`);
+      }));
+      result.setText(`${caught} ${size}cm！\n自己最大 ${updated.fishRecords[caught]}cm · エサ残り${updated.bait}`);
       waiting = false;
       bite = false;
       bobber.setVisible(false).setFillStyle(0xf6eee0);

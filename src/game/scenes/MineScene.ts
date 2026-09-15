@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { loadSave, updateSave } from '../../save/SaveRepository';
 import { addBackButton, addTitle } from './ui';
-import { reward } from '../systems/progression';
 
 export class MineScene extends Phaser.Scene {
   private hp = 3;
@@ -31,6 +30,8 @@ export class MineScene extends Phaser.Scene {
     this.add.text(195, 335, '⛏', { fontSize: '58px' }).setOrigin(0.5);
     this.hpText = this.add.text(195, 465, '', { fontSize: '16px', color: '#f3e6bf' }).setOrigin(0.5);
     this.infoText = this.add.text(195, 515, '岩盤をタップ', { fontSize: '15px', color: '#ccd2ce' }).setOrigin(0.5);
+    const upgrade=this.add.text(195,570,'鉱山を強化',{fontSize:'16px',color:'#fff0b5',backgroundColor:'#574a38',padding:{x:16,y:9}}).setOrigin(.5).setInteractive({useHandCursor:true});
+    upgrade.on('pointerup',()=>{const s=loadSave();if(s.mineLevel>=3){this.infoText?.setText('鉱山 Lv.3 MAX');return;}const ok=s.mineLevel===1?s.gold>=180&&s.stone>=12&&s.ingots>=2:s.gold>=360&&s.stone>=24&&s.gears>=2&&s.crystal>=1;if(!ok){this.infoText?.setText('強化に必要なG・素材が足りない');return;}updateSave(v=>v.mineLevel===1?{...v,mineLevel:2,gold:v.gold-180,stone:v.stone-12,ingots:v.ingots-2}:{...v,mineLevel:3,gold:v.gold-360,stone:v.stone-24,gears:v.gears-2,crystal:v.crystal-1});this.infoText?.setText(`鉱山 Lv.${loadSave().mineLevel}！`);});
 
     this.rock.on('pointerup', () => this.mine());
     this.tweens.add({ targets: this.rock, scale: 1.025, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
@@ -55,17 +56,23 @@ export class MineScene extends Phaser.Scene {
       return;
     }
 
-    const foundIron = Phaser.Math.Between(1, 100) <= 45;
-    updateSave((current) => reward({
+    const level = save.mineLevel;
+    const foundIron = Phaser.Math.Between(1, 100) <= Math.min(90, 55 + level * 10);
+    const foundCopper = Phaser.Math.Between(1, 100) <= 30 + level * 10;
+    const foundCrystal = Phaser.Math.FloatBetween(0, 100) <= 2.5 * level;
+    const stone = Phaser.Math.Between(2, 4) + level - 1;
+    updateSave((current) => ({
       ...current,
       depth: current.depth + 1,
-      stone: current.stone + 1,
-      iron: current.iron + (foundIron ? 1 : 0),
+      stone: current.stone + stone,
+      iron: current.iron + (foundIron ? 1 + (level === 3 && Math.random() < .35 ? 1 : 0) : 0),
+      copper: current.copper + (foundCopper ? 1 : 0), crystal: current.crystal + (foundCrystal ? 1 : 0),
       rocksBroken: current.rocksBroken + 1
-    }, 10, 8));
+    }));
 
-    this.infoText?.setText(foundIron ? '鉄鉱石！ XP+10 / 8G' : '石！ XP+10 / 8G');
-    const drop = this.add.text(195, 330, foundIron ? '◆ 鉄鉱石 +1' : '● 石 +1', { fontSize: '18px', fontStyle: 'bold', color: foundIron ? '#ffc96d' : '#e0ded5', backgroundColor: '#101716cc', padding: { x: 9, y: 5 } }).setOrigin(0.5);
+    const bonus = `${foundIron ? ' 鉄' : ''}${foundCopper ? ' 銅' : ''}${foundCrystal ? ' ✦' : ''}`;
+    this.infoText?.setText(`石材+${stone}${bonus}`);
+    const drop = this.add.text(195, 330, `● 石材 +${stone}${bonus}`, { fontSize: '18px', fontStyle: 'bold', color: foundIron ? '#ffc96d' : '#e0ded5', backgroundColor: '#101716cc', padding: { x: 9, y: 5 } }).setOrigin(0.5);
     this.tweens.add({ targets: drop, y: 250, alpha: 0, duration: 950, onComplete: () => drop.destroy() });
     this.hp = 3;
     this.refresh();
@@ -74,6 +81,6 @@ export class MineScene extends Phaser.Scene {
   private refresh() {
     const save = loadSave();
     this.hpText?.setText(`岩盤 ${'◆'.repeat(this.hp)}${'◇'.repeat(3 - this.hp)}   採掘力 ${save.energy}`);
-    this.depthText?.setText(`B${save.depth}F`);
+    this.depthText?.setText(`B${save.depth}F · Lv.${save.mineLevel}`);
   }
 }

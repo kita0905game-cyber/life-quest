@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { loadSave } from '../../save/SaveRepository';
+import { loadSave, updateSave } from '../../save/SaveRepository';
 
 type Hotspot = { label: string; icon: string; scene: string; x: number; y: number; color: number };
 
@@ -11,8 +11,10 @@ export class TownScene extends Phaser.Scene {
   create() {
     this.add.image(195, 340, 'town-v2').setDisplaySize(510, 680);
     this.add.rectangle(195, 34, 390, 68, 0x071411, 0.82);
-    this.add.text(18, 11, '黄昏の開拓都市', { fontSize: '22px', fontStyle: 'bold', color: '#ffe6a3' });
-    this.add.text(19, 40, '秋・夕暮れ　施設を直接タップ', { fontSize: '12px', color: '#c9d9ce' });
+    const now=new Date(); const season=['冬','冬','春','春','春','夏','夏','夏','秋','秋','秋','冬'][now.getMonth()]; const h=now.getHours(); const time=h>=5&&h<10?'朝':h<17?'昼':h<20?'夕方':'夜';
+    const current=loadSave(); const dev=current.mineLevel+current.workshopLevel; const rank=dev>=6?'工業都市':dev>=4?'開拓町':Math.max(current.mineLevel,current.workshopLevel)>=4?'村':'開拓地';
+    this.add.text(18, 11, `${rank}・黄昏都市`, { fontSize: '22px', fontStyle: 'bold', color: '#ffe6a3' });
+    this.add.text(19, 40, `${season}・${time}　施設を直接タップ`, { fontSize: '12px', color: '#c9d9ce' });
 
     const hotspots: Hotspot[] = [
       { label: '探索', icon: '✦', scene: 'ExploreScene', x: 58, y: 120, color: 0x2f7253 },
@@ -36,6 +38,8 @@ export class TownScene extends Phaser.Scene {
 
     const save = loadSave();
     this.add.rectangle(195, 648, 370, 45, 0x081411, 0.88).setStrokeStyle(1, 0xc8a65b);
-    this.add.text(195, 648, `鉱石 ${save.iron}　インゴット ${save.ingots}　魚 ${save.fishCaught}　戦利品 ${save.loot}`, { fontSize: '12px', color: '#f5e8bd' }).setOrigin(0.5);
+    const treasure=this.add.text(195, 615, `🎁 宝箱 ${save.chests}　タップで開ける`, {fontSize:'14px',fontStyle:'bold',color:'#ffe29a',backgroundColor:'#263c32dd',padding:{x:10,y:6}}).setOrigin(.5).setInteractive({useHandCursor:true});
+    treasure.on('pointerup',()=>{ const s=loadSave(); if(s.chests<1){treasure.setText('宝箱は空だ');return;} const gold=Phaser.Math.Between(45,100),wood=Phaser.Math.Between(2,5),stone=Phaser.Math.Between(2,5); updateSave(v=>({...v,chests:v.chests-1,chestsOpened:v.chestsOpened+1,gold:v.gold+gold,wood:v.wood+wood,stone:v.stone+stone,bait:v.bait+1+(Math.random()<.35?1:0),iron:v.iron+(Math.random()<.55?1:0),copper:v.copper+(Math.random()<.4?1:0),crystal:v.crystal+(Math.random()<.08?1:0),explorationTickets:v.explorationTickets+(Math.random()<.1?1:0)})); treasure.setText(`+${gold}G 木材+${wood} 石材+${stone}`); });
+    this.add.text(195, 658, `石${save.stone} 鉄${save.iron} 銅${save.copper} 木${save.wood} ✦${save.crystal}　魚${save.fishCaught}`, { fontSize: '11px', color: '#f5e8bd' }).setOrigin(0.5);
   }
 }
