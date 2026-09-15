@@ -7,6 +7,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true
+      },
       manifest: {
         name: 'LIFE QUEST',
         short_name: 'LIFE QUEST',
@@ -16,7 +21,8 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait-primary',
         start_url: './',
-        scope: './'
+        scope: './',
+        id: 'life-quest-v0-2'
       }
     })
   ],

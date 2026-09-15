@@ -6,10 +6,10 @@ type Hotspot = { label: string; icon: string; scene: string; x: number; y: numbe
 export class TownScene extends Phaser.Scene {
   constructor() { super('TownScene'); }
 
-  preload() { this.load.image('town', './assets/town.png'); }
+  preload() { this.load.image('town-v2', './assets/town-v2.png'); }
 
   create() {
-    this.add.image(195, 340, 'town').setDisplaySize(510, 680);
+    this.add.image(195, 340, 'town-v2').setDisplaySize(510, 680);
     this.add.rectangle(195, 34, 390, 68, 0x071411, 0.82);
     this.add.text(18, 11, '黄昏の開拓都市', { fontSize: '22px', fontStyle: 'bold', color: '#ffe6a3' });
     this.add.text(19, 40, '秋・夕暮れ　施設を直接タップ', { fontSize: '12px', color: '#c9d9ce' });
