@@ -61,7 +61,7 @@ export default function App() {
       <main className="app-shell">
         <header className="app-header">
           <div>
-            <span className="eyebrow">PERSONAL FRONTIER RPG · V0.4</span>
+            <span className="eyebrow">PERSONAL FRONTIER RPG · V0.5</span>
             <h1>LIFE QUEST</h1>
           </div>
         </header>
@@ -78,7 +78,7 @@ export default function App() {
     <main className="app-shell">
       <header className="app-header">
         <div>
-          <span className="eyebrow">PERSONAL FRONTIER RPG · V0.4</span>
+          <span className="eyebrow">PERSONAL FRONTIER RPG · V0.5</span>
           <h1>LIFE QUEST</h1>
         </div>
         <div className="player-level">YUMA <b>Lv.{progress.level}</b></div>
@@ -93,7 +93,7 @@ export default function App() {
       <section className="game-frame">
         <LifeQuestGame />
       </section>
-      <p className="footnote">V0.4 — {cloudLabel[cloud]} / LUNA CORE正本・自動同期</p>
+      <p className="footnote">V0.5 — {cloudLabel[cloud]} / LUNA CORE正本・自動同期</p>
     </main>
   );
 }
