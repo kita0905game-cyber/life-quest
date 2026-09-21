@@ -22,6 +22,7 @@ export class TownScene extends Phaser.Scene {
       { label: 'BOSS', icon: '♜', scene: 'BossScene', x: 325, y: 105, color: 0x6d3445 },
       { label: '図鑑', icon: '▦', scene: 'MuseumScene', x: 68, y: 320, color: 0x316874 },
       { label: 'ギルド', icon: '⚑', scene: 'GuildScene', x: 197, y: 315, color: 0x3e536f },
+      { label: '鉄道', icon: '▰', scene: 'RailwayScene', x: 326, y: 242, color: 0x405d55 },
       { label: '工房', icon: '⚒', scene: 'WorkshopScene', x: 320, y: 360, color: 0x8b4a2d },
       { label: '記録', icon: '☰', scene: 'RecordsScene', x: 330, y: 490, color: 0x384f68 },
       { label: '家', icon: '⌂', scene: 'HouseScene', x: 75, y: 485, color: 0x6d543b },

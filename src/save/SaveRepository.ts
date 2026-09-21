@@ -1,4 +1,12 @@
 export type Expedition = { site: '森' | '山' | '遺跡'; startedAt: number; returnsAt: number };
+export type WarehouseMaterials = {
+  stone: number; iron: number; copper: number; wood: number; crystal: number;
+  ingots: number; copperIngots: number; gears: number; lanterns: number;
+};
+export type WagonTransfer = {
+  id: string; from: string; to: string; materials: WarehouseMaterials; startedAt: string; arrivesAt: string;
+};
+export type GameAction = 'railway_build_first_freight' | 'hire_miner' | 'wagon_mountain_to_main' | 'unlock_automation';
 export type LifeQuestSave = {
   version: 3;
   depth: number; energy: number; stone: number; iron: number; copper: number; wood: number; crystal: number;
@@ -8,7 +16,9 @@ export type LifeQuestSave = {
   xp: number; lq: number; gold: number; knowledge: number; chests: number; bossHp: number; bossMax: number;
   mineLevel: number; workshopLevel: number; rocksBroken: number; casts: number; crafted: number; chestsOpened: number;
   exploredLocations: Record<string, number>; guildRewardClaimed: boolean; discoveredItems: string[]; eventCards: string[];
-  hallOfFame: Record<string, number>; railwayTrainCount: number; railwayDepotUnlocked: boolean; updatedAt: number;
+  hallOfFame: Record<string, number>; railwayTrainCount: number; railwayDepotUnlocked: boolean;
+  automations: string[]; regionalWarehouses: Record<string, WarehouseMaterials>; wagonTransfers: WagonTransfer[];
+  minerHiredUntil: string; minerLastSettledAt: string; updatedAt: number;
 };
 
 export type CloudStatus = 'pairing-required' | 'connecting' | 'connected' | 'offline' | 'error';
@@ -21,13 +31,28 @@ const API = 'https://luna-core.kita0905-game.workers.dev';
 const FISH = ['メダカ','フナ','コイ','ブラックバス','アジ','サバ','タイ','サケ','ウナギ','金魚','ニジマス','月影ゴイ'];
 
 const emptyFishInventory = Object.fromEntries(FISH.map((name) => [name, 0])) as Record<string, number>;
+const emptyWarehouse: WarehouseMaterials = {
+  stone: 0, iron: 0, copper: 0, wood: 0, crystal: 0, ingots: 0, copperIngots: 0, gears: 0, lanterns: 0
+};
+const emptyRegionalWarehouses: Record<string, WarehouseMaterials> = {
+  mountain: { ...emptyWarehouse }, forest: { ...emptyWarehouse }, waterside: { ...emptyWarehouse }, industrial: { ...emptyWarehouse }
+};
+
+function normalizeWarehouse(input?: Partial<WarehouseMaterials> | null): WarehouseMaterials {
+  return {
+    stone: Number(input?.stone ?? 0), iron: Number(input?.iron ?? 0), copper: Number(input?.copper ?? 0),
+    wood: Number(input?.wood ?? 0), crystal: Number(input?.crystal ?? 0), ingots: Number(input?.ingots ?? 0),
+    copperIngots: Number(input?.copperIngots ?? 0), gears: Number(input?.gears ?? 0), lanterns: Number(input?.lanterns ?? 0)
+  };
+}
 const initialSave: LifeQuestSave = {
   version: 3, depth: 1, energy: 12, stone: 6, iron: 3, copper: 3, wood: 2, crystal: 0,
   ingots: 0, copperIngots: 0, gears: 0, lanterns: 0, fishCaught: 0, fishRecords: {}, discoveredFish: [], fishInventory: { ...emptyFishInventory }, bait: 3,
   discoveries: 0, loot: 0, explorationTickets: 1, expedition: null, xp: 0, lq: 0, gold: 120,
   knowledge: 0, chests: 1, bossHp: 600, bossMax: 600, mineLevel: 1, workshopLevel: 1,
   rocksBroken: 0, casts: 0, crafted: 0, chestsOpened: 0, exploredLocations: {}, guildRewardClaimed: false,
-  discoveredItems: ['stone', 'iron', 'copper', 'wood'], eventCards: [], hallOfFame: {}, railwayTrainCount: 0, railwayDepotUnlocked: false, updatedAt: Date.now()
+  discoveredItems: ['stone', 'iron', 'copper', 'wood'], eventCards: [], hallOfFame: {}, railwayTrainCount: 0, railwayDepotUnlocked: false,
+  automations: [], regionalWarehouses: { ...emptyRegionalWarehouses }, wagonTransfers: [], minerHiredUntil: '', minerLastSettledAt: '', updatedAt: Date.now()
 };
 
 let cloudStatus: CloudStatus = 'connecting';
@@ -55,6 +80,16 @@ function normalizeSave(input: Partial<LifeQuestSave> | null | undefined): LifeQu
     hallOfFame: { ...(parsed.hallOfFame ?? {}) },
     railwayTrainCount: Number(parsed.railwayTrainCount ?? 0),
     railwayDepotUnlocked: parsed.railwayDepotUnlocked === true,
+    automations: [...(parsed.automations ?? [])],
+    regionalWarehouses: Object.fromEntries(
+      Object.entries({ ...emptyRegionalWarehouses, ...(parsed.regionalWarehouses ?? {}) }).map(([region, stock]) => [region, normalizeWarehouse(stock)])
+    ),
+    wagonTransfers: (parsed.wagonTransfers ?? []).map((transfer) => ({
+      ...transfer,
+      materials: normalizeWarehouse(transfer.materials)
+    })),
+    minerHiredUntil: parsed.minerHiredUntil ?? '',
+    minerLastSettledAt: parsed.minerLastSettledAt ?? '',
     lq: Number(parsed.lq ?? 0),
     updatedAt: Number(parsed.updatedAt ?? Date.now())
   };
@@ -219,6 +254,30 @@ export function updateSave(updater: (current: LifeQuestSave) => LifeQuestSave) {
   savePending(pending);
   void flushPendingMutations();
   return after;
+}
+
+export async function performGameAction(action: GameAction, params: { automation?: string } = {}) {
+  const token = getToken();
+  if (!token) throw new Error('LUNA CORE未接続');
+  emitCloudStatus('connecting');
+  try {
+    const response = await fetch(`${API}/quest/action`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actionId: mutationId(), action, ...params })
+    });
+    const data = await response.json() as {
+      error?: string;
+      receipt?: { save?: Partial<LifeQuestSave>; message?: string; reward?: Record<string, string | number> };
+    };
+    if (!response.ok || !data.receipt?.save) throw new Error(data.error ?? `action-${response.status}`);
+    const next = persistLocal(normalizeSave(data.receipt.save));
+    emitCloudStatus('connected');
+    return { save: next, message: data.receipt.message ?? '', reward: data.receipt.reward ?? {} };
+  } catch (error) {
+    emitCloudStatus('offline');
+    throw error;
+  }
 }
 
 export const getCloudStatus = () => cloudStatus;
