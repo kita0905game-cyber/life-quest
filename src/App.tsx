@@ -72,6 +72,25 @@ export default function App() {
     );
   }
 
+  if (cloud === 'pairing-required') {
+    return (
+      <main className="app-shell">
+        <header className="app-header">
+          <div>
+            <span className="eyebrow">PERSONAL FRONTIER RPG · V0.5</span>
+            <h1>LIFE QUEST</h1>
+          </div>
+        </header>
+        <section className="status-panel" aria-label="LUNA CORE接続状態">
+          <div className="status-row"><span>LUNA CORE 未接続</span></div>
+          <p style={{ margin: 0, paddingTop: 12 }}>
+            このブラウザはまだLUNA COREとペアリングされていません。初期セーブではなく、正本へ接続してから冒険を開始します。
+          </p>
+        </section>
+      </main>
+    );
+  }
+
   const progress = getLevel(save);
 
   return (
