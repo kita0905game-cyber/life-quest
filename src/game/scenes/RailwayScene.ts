@@ -46,11 +46,9 @@ export class RailwayScene extends Phaser.Scene {
     this.add.text(35, 249, `山岳倉庫　石 ${mountain.stone}　鉄 ${mountain.iron}　銅 ${mountain.copper}`, { fontSize: '13px', color: '#d7e4dc' });
     const minerSeconds = secondsUntil(save.minerHiredUntil);
     this.add.text(35, 273, minerSeconds > 0 ? `鉱夫 稼働中　残り約${Math.ceil(minerSeconds / 60)}分` : '鉱夫 停止中', { fontSize: '13px', color: minerSeconds > 0 ? '#9de3b0' : '#b8c0bb' });
-    this.addActionButton(111, 316, '鉱夫 +1時間
-1200G', 'hire_miner', {}, save.gold >= 1200);
+    this.addActionButton(111, 316, '鉱夫 +1時間\\n1200G', 'hire_miner', {}, save.gold >= 1200);
     const warehouseTotal = mountain.stone + mountain.iron + mountain.copper + mountain.wood + mountain.crystal + mountain.ingots + mountain.copperIngots + mountain.gears + mountain.lanterns;
-    this.addActionButton(279, 316, '馬車輸送
-50G / 30分', 'wagon_mountain_to_main', {}, save.gold >= 50 && warehouseTotal > 0);
+    this.addActionButton(279, 316, '馬車輸送\\n50G / 30分', 'wagon_mountain_to_main', {}, save.gold >= 50 && warehouseTotal > 0);
     const transfer = save.wagonTransfers.find((item) => item.from === 'mountain' && item.to === 'main');
     if (transfer) {
       const eta = secondsUntil(transfer.arrivesAt);
