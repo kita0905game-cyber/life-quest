@@ -1,13 +1,35 @@
 # LIFE QUEST
 
-iPhoneの縦画面を主役に、PCでも遊べる自分専用の長期箱庭RPGです。V0.1では「カードを選ぶ」のではなく、街や設備、岩盤、水面、探索地点など世界そのものを触って進めます。
+iPhoneの縦画面を主役に、PCでも遊べる自分専用の長期箱庭RPGです。世界そのものを触って進める設計を維持しつつ、2026-09-22からLUNA COREを正本バックエンドとして運用します。
 
-## 技術構成
+## 現行アーキテクチャ
 
 - React 19 + TypeScript + Vite
-- Phaser 3（ゲーム世界、入力、演出）
-- `vite-plugin-pwa`（Manifest、Service Worker、standalone表示）
-- localStorage（`SaveRepository`の抽象化層経由、セーブ形式version 1）
+- Phaser 3
+- `vite-plugin-pwa`
+- GitHub: LIFE QUESTクライアントとゲームロジックの正本
+- LUNA CORE / Cloudflare Workers: LIFE QUEST GameStateの正本、ゲーム同期、学習イベントからLQ通貨・XP等を生成
+- AppDeploy: ユーザーの簿記学習UI
+- Airtable: ユーザーの学習データ記録エリア
+
+学習からゲームへの流れは以下です。
+
+```text
+AppDeployで回答
+  -> Airtableへ学習結果を記録
+  -> 保存成功した回答IDをLUNA COREへ通知
+  -> GitHub上のLUNA COREロジックがLQ / XP / 採掘力 / エサ / BOSS進行を計算
+  -> LUNA COREのGameStateへ反映
+  -> LIFE QUEST PWAが同期
+```
+
+## セーブ方式
+
+LIFE QUESTの正本はLUNA COREです。
+
+クライアントは操作感を損なわないためローカルへ即時反映し、各操作を一意のmutation ID付きでLUNA COREへ同期します。通信断時は未送信操作を端末に保持し、再接続後に再送します。LUNA CORE側ではmutation IDで重複適用を防ぎます。
+
+2026-09-21までAppDeployに存在したGameStateはLUNA COREへgame-onlyで移行済みです。移行元スナップショットは別保存され、簿記回答履歴は移行していません。
 
 ## 開発開始
 
@@ -29,39 +51,37 @@ npm run build
 src/
   game/
     scenes/       Phaserの街・施設画面
-  save/           差し替え可能なSaveRepository
-  App.tsx         ReactのアプリシェルとHUD
+    systems/      ゲーム進行ロジック
+    data/         固定データ
+  save/           LUNA CORE同期・ローカル保険・オフラインキュー
+  App.tsx         ReactアプリシェルとHUD
 ```
 
-今後は固定定義を`game/data`、ゲームルールを`game/systems`、登場物を`game/entities`へ分離して拡張します。
+## 現在実装済み
 
-## 現在実装済み（V0.2）
+- 街から鉱山、釣り、工房、探索、ギルド、博物館、BOSS城、記録、マイハウスへ直接移動
+- 鉱山、釣り、工房、探索、ギルド、BOSS、図鑑、記録、マイハウス
+- LQ / G / XP / 採掘力 / エサ / 探索チケット / 宝箱表示
+- LUNA COREからの初回bootstrap
+- ゲーム操作のオフラインキューと重複防止同期
+- AppDeploy / Airtable学習イベントからのLQ生成
+- 移行済み鉄道・地域倉庫など、現クライアント未対応フィールドの保持
 
-- 街：専用の幻想都市マップ上から鉱山、釣り、工房、探索、ギルド、博物館、BOSS城、記録、マイハウスへ直接移動
-- 鉱山：岩盤タップ、ヒビ、破壊、エネルギー消費、石・鉄鉱石、深度進行
-- 釣り：動く魚影、投擲、浮きのHIT操作、魚種・サイズ・自己最大記録
-- 工房：炉で鉄鉱石からインゴット、作業台でインゴットからギアを製作
-- 探索：地図上の森・山・遺跡を選び、発見と戦利品を獲得
-- 成長：レベル、EXP、ゴールド、複数行動型ギルドクエストと達成報酬
-- BOSS：工房で作ったギアを使う固定ルール型の城門戦
-- 図鑑・記録：魚の自己最大、鉱物・遺跡資料、累計行動を保存
-- マイハウス：休息で採掘力を回復。休んでも損をしない設計
-- 全施設から街へ戻る操作と、リロード後も残るversion付きセーブ
-- Safe Areaを考慮したスマホ縦画面と、PCでの中央表示
+## 運用原則
 
-## セーブ方式
+- 過去の努力、履歴、資産を消さない
+- クライアント未対応フィールドを同期時に落とさない
+- 学習記録の正本はAirtable
+- ゲーム状態の正本はLUNA CORE
+- AppDeployは勉強UIでありLIFE QUESTの正本ではない
+- destructive migrationやsave resetは行わない
+- 将来のMAGI自動更新でもセーブ、履歴、権限、憲法は保護対象
 
-ゲームコードはlocalStorageを直接触らず、`SaveRepository`インターフェースを使います。将来はSupabase、Cloudflare、独自API、PC・スマホ同期用の実装へ差し替えられます。
+## ホスティング
 
-## 次の候補
-
-駅、研究所、博物館、図書館、BOSS城、牧場、ギルド、商店、マイハウス、採掘ルート、ツルハシビルド、釣り場・天候・ヌシ、生産キュー、遠征とオフライン帰還を追加予定です。次の最優先は、鉱山のルート選択と鉱脈・遺跡イベントです。
-
-## Cloudflare Pages
-
-GitHubリポジトリをCloudflare Pagesに接続し、次を設定します。
+LIFE QUESTは静的PWAとしてCloudflare Pagesでの公開を想定します。
 
 - Build command: `npm run build`
 - Output directory: `dist`
 
-環境変数はV0.1では不要です。
+Cloudflare Pagesの公開URLとGit連携はCloudflare側設定で管理します。
