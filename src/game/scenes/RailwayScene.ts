@@ -81,7 +81,7 @@ export class RailwayScene extends Phaser.Scene {
 
     this.time.delayedCall(10000, () => {
       void refreshCloudSave().then(() => {
-        if (this.scene.isActive()) this.scene.restart();
+        if (this.scene.isActive('RailwayScene')) this.scene.restart();
       });
     });
   }
