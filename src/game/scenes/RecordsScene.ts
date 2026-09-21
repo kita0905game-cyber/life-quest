@@ -1,8 +1,8 @@
 import Phaser from 'phaser'; import {loadSave} from '../../save/SaveRepository'; import {getLevel} from '../systems/progression'; import {addBackButton,addTitle} from './ui';
 export class RecordsScene extends Phaser.Scene { constructor(){super('RecordsScene');} create(){this.cameras.main.setBackgroundColor('#182837');addBackButton(this);addTitle(this,'冒険博物館','Chapterと殿堂入りは永久保存');const s=loadSave(),p=getLevel(s);
- const rows=[['冒険者',`Lv.${p.level}${p.master?` MASTER ${p.master}`:''}`],['累計EXP',`${s.xp}`],['到達深度',`B${s.depth}F`],['岩盤破壊',`${s.rocksBroken}回`],['釣果',`${s.fishCaught}匹 / ${Object.keys(s.fishRecords).length}種`],['探索',`${s.discoveries}回`],['製作',`${s.crafted}回`]];
+ const rows=[['冒険者',`Lv.${p.level}${p.master?` MASTER ${p.master}`:''}`],['累計EXP',`${s.xp}`],['到達深度',`B${s.depth}F`],['岩盤破壊',`${s.rocksBroken}回`],['釣果',`${s.fishCaught}匹 / ${s.discoveredFish.length}種`],['探索',`${s.discoveries}回`],['製作',`${s.crafted}回`]];
  rows.forEach(([a,b],i)=>{const y=130+i*39;this.add.rectangle(195,y,335,32,i%2?0x203547:0x1d3040).setStrokeStyle(1,0x49677a);this.add.text(40,y,a,{fontSize:'13px',color:'#a9c2cf'}).setOrigin(0,.5);this.add.text(348,y,b,{fontSize:'15px',color:'#ffe2a0'}).setOrigin(1,.5);});
- const chapters=[['Chapter 1 冒険開始',s.eventCards.length,3,'chapter1'],['Chapter 2 開拓',s.discoveredItems.length,9,'chapter2'],['Chapter 3 収集と冒険',Object.keys(s.fishRecords).length,12,'chapter3']] as const;
+ const chapters=[['Chapter 1 冒険開始',s.eventCards.length,3,'chapter1'],['Chapter 2 開拓',s.discoveredItems.length,9,'chapter2'],['Chapter 3 収集と冒険',s.discoveredFish.length,12,'chapter3']] as const;
  chapters.forEach(([name,value,target,key],i)=>{const done=!!s.hallOfFame[key];const y=435+i*65;this.add.rectangle(195,y,335,54,done?0x4f5731:0x26394a).setStrokeStyle(2,done?0xe5cb72:0x577389);this.add.text(40,y-8,name,{fontSize:'14px',fontStyle:'bold',color:done?'#fff0a6':'#dce7ed'}).setOrigin(0,.5);this.add.text(348,y+12,done?'COMPLETE・殿堂入り':`${Math.min(value,target)}/${target}`,{fontSize:'12px',color:done?'#ffe077':'#9fb6c2'}).setOrigin(1,.5);});
  this.add.text(195,645,'V4 CHAPTER · Luna GM　LOCK',{fontSize:'13px',color:'#7f91a0'}).setOrigin(.5);
  }}
