@@ -65,7 +65,9 @@ export class FishingScene extends Phaser.Scene {
       const updated = updateSave((save) => ({
         ...save,
         bait: save.bait - 1, fishCaught: save.fishCaught + 1,
-        fishRecords: { ...save.fishRecords, [caught]: Math.max(save.fishRecords[caught] ?? 0, size) }
+        fishRecords: { ...save.fishRecords, [caught]: Math.max(save.fishRecords[caught] ?? 0, size) },
+        discoveredFish: [...new Set([...save.discoveredFish, caught])],
+        fishInventory: { ...save.fishInventory, [caught]: (save.fishInventory[caught] ?? 0) + 1 }
       }));
       result.setText(`${caught} ${size}cm！\n自己最大 ${updated.fishRecords[caught]}cm · エサ残り${updated.bait}`);
       waiting = false;

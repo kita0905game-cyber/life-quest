@@ -1,55 +1,224 @@
 export type Expedition = { site: '森' | '山' | '遺跡'; startedAt: number; returnsAt: number };
 export type LifeQuestSave = {
-  version: 2;
+  version: 3;
   depth: number; energy: number; stone: number; iron: number; copper: number; wood: number; crystal: number;
   ingots: number; copperIngots: number; gears: number; lanterns: number;
-  fishCaught: number; fishRecords: Record<string, number>; bait: number;
+  fishCaught: number; fishRecords: Record<string, number>; discoveredFish: string[]; fishInventory: Record<string, number>; bait: number;
   discoveries: number; loot: number; explorationTickets: number; expedition: Expedition | null;
-  xp: number; gold: number; knowledge: number; chests: number; bossHp: number; bossMax: number;
+  xp: number; lq: number; gold: number; knowledge: number; chests: number; bossHp: number; bossMax: number;
   mineLevel: number; workshopLevel: number; rocksBroken: number; casts: number; crafted: number; chestsOpened: number;
   exploredLocations: Record<string, number>; guildRewardClaimed: boolean; discoveredItems: string[]; eventCards: string[];
-  hallOfFame: Record<string, number>; updatedAt: number;
+  hallOfFame: Record<string, number>; railwayTrainCount: number; railwayDepotUnlocked: boolean; updatedAt: number;
 };
+
+export type CloudStatus = 'pairing-required' | 'connecting' | 'connected' | 'offline' | 'error';
+type PendingMutation = { id: string; before: LifeQuestSave; after: LifeQuestSave };
+
 const KEY = 'life-quest-save-v1';
+const TOKEN_KEY = 'life-quest-luna-token-v1';
+const PENDING_KEY = 'life-quest-pending-mutations-v1';
+const API = 'https://luna-core.kita0905-game.workers.dev';
+const FISH = ['メダカ','フナ','コイ','ブラックバス','アジ','サバ','タイ','サケ','ウナギ','金魚','ニジマス','月影ゴイ'];
+
+const emptyFishInventory = Object.fromEntries(FISH.map((name) => [name, 0])) as Record<string, number>;
 const initialSave: LifeQuestSave = {
-  version: 2, depth: 1, energy: 12, stone: 6, iron: 3, copper: 3, wood: 2, crystal: 0,
-  ingots: 0, copperIngots: 0, gears: 0, lanterns: 0, fishCaught: 0, fishRecords: {}, bait: 3,
-  discoveries: 0, loot: 0, explorationTickets: 1, expedition: null, xp: 0, gold: 120,
+  version: 3, depth: 1, energy: 12, stone: 6, iron: 3, copper: 3, wood: 2, crystal: 0,
+  ingots: 0, copperIngots: 0, gears: 0, lanterns: 0, fishCaught: 0, fishRecords: {}, discoveredFish: [], fishInventory: { ...emptyFishInventory }, bait: 3,
+  discoveries: 0, loot: 0, explorationTickets: 1, expedition: null, xp: 0, lq: 0, gold: 120,
   knowledge: 0, chests: 1, bossHp: 600, bossMax: 600, mineLevel: 1, workshopLevel: 1,
   rocksBroken: 0, casts: 0, crafted: 0, chestsOpened: 0, exploredLocations: {}, guildRewardClaimed: false,
-  discoveredItems: ['stone', 'iron', 'copper', 'wood'], eventCards: [], hallOfFame: {}, updatedAt: Date.now()
+  discoveredItems: ['stone', 'iron', 'copper', 'wood'], eventCards: [], hallOfFame: {}, railwayTrainCount: 0, railwayDepotUnlocked: false, updatedAt: Date.now()
 };
-export interface SaveRepository { load(): LifeQuestSave; save(next: LifeQuestSave): LifeQuestSave; }
-export class LocalStorageSaveRepository implements SaveRepository {
-  load(): LifeQuestSave {
-    try {
-      const raw = localStorage.getItem(KEY);
-      const parsed = raw ? JSON.parse(raw) as Partial<LifeQuestSave> : {};
-      const migrated = { ...initialSave, ...parsed, version: 2 as const };
-      return { ...migrated, bossMax: 600, bossHp: Number(parsed.version) === 1 && parsed.bossHp === 300 ? 600 : migrated.bossHp,
-        fishRecords: { ...parsed.fishRecords }, exploredLocations: { ...parsed.exploredLocations },
-        discoveredItems: parsed.discoveredItems ?? initialSave.discoveredItems, eventCards: parsed.eventCards ?? [], hallOfFame: parsed.hallOfFame ?? {} };
-    } catch { return { ...initialSave }; }
-  }
-  save(next: LifeQuestSave): LifeQuestSave {
-    const cards = new Set(next.eventCards);
-    if (next.rocksBroken + next.crafted + next.fishCaught + next.discoveries > 0) cards.add('最初の一歩');
-    if (next.rocksBroken > 0 || next.crafted > 0) cards.add('開拓者');
-    if (next.fishCaught > 0) cards.add('最初の一匹');
-    if (next.discoveries > 0) cards.add('世界の外へ');
-    if (Object.keys(next.fishRecords).length >= 5) cards.add('水辺の収集家');
-    if (next.bossHp <= 0) cards.add('城主討伐者');
-    const hall = { ...next.hallOfFame };
-    if (!hall.chapter1 && cards.size >= 3) hall.chapter1 = Date.now();
-    if (!hall.chapter2 && hall.chapter1 && next.mineLevel >= 3 && next.workshopLevel >= 3 && next.discoveredItems.length >= 9) hall.chapter2 = Date.now();
-    if (!hall.chapter3 && hall.chapter2 && Object.keys(next.fishRecords).length >= 12 && next.discoveries >= 10) hall.chapter3 = Date.now();
-    const versioned = { ...next, eventCards: [...cards], hallOfFame: hall, version: 2 as const, updatedAt: Date.now() };
-    localStorage.setItem(KEY, JSON.stringify(versioned));
-    window.dispatchEvent(new CustomEvent('lifequest:save', { detail: versioned }));
-    return versioned;
+
+let cloudStatus: CloudStatus = 'connecting';
+let syncInFlight: Promise<void> | null = null;
+
+function emitCloudStatus(next: CloudStatus) {
+  cloudStatus = next;
+  window.dispatchEvent(new CustomEvent<CloudStatus>('lifequest:cloud', { detail: next }));
+}
+
+function normalizeSave(input: Partial<LifeQuestSave> | null | undefined): LifeQuestSave {
+  const parsed = input ?? {};
+  return {
+    ...initialSave,
+    ...parsed,
+    version: 3,
+    bossMax: Math.max(1, Number(parsed.bossMax ?? initialSave.bossMax)),
+    bossHp: Number(parsed.version) === 1 && parsed.bossHp === 300 ? 600 : Number(parsed.bossHp ?? initialSave.bossHp),
+    fishRecords: { ...(parsed.fishRecords ?? {}) },
+    discoveredFish: [...new Set(parsed.discoveredFish ?? Object.keys(parsed.fishRecords ?? {}))],
+    fishInventory: { ...emptyFishInventory, ...(parsed.fishInventory ?? {}) },
+    exploredLocations: { ...(parsed.exploredLocations ?? {}) },
+    discoveredItems: [...(parsed.discoveredItems ?? initialSave.discoveredItems)],
+    eventCards: [...(parsed.eventCards ?? [])],
+    hallOfFame: { ...(parsed.hallOfFame ?? {}) },
+    railwayTrainCount: Number(parsed.railwayTrainCount ?? 0),
+    railwayDepotUnlocked: parsed.railwayDepotUnlocked === true,
+    lq: Number(parsed.lq ?? 0),
+    updatedAt: Number(parsed.updatedAt ?? Date.now())
+  };
+}
+
+function capturePairingToken() {
+  try {
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const token = params.get('lqToken');
+    if (!token) return;
+    localStorage.setItem(TOKEN_KEY, token);
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+  } catch {
+    // Pairing can be retried by opening the pairing URL again.
   }
 }
-export const saveRepository: SaveRepository = new LocalStorageSaveRepository();
-export const loadSave = () => saveRepository.load();
-export const saveGame = (next: LifeQuestSave) => saveRepository.save(next);
-export function updateSave(updater: (current: LifeQuestSave) => LifeQuestSave) { return saveGame(updater(loadSave())); }
+
+capturePairingToken();
+
+function getToken() {
+  try { return localStorage.getItem(TOKEN_KEY) ?? ''; } catch { return ''; }
+}
+
+function persistLocal(next: LifeQuestSave) {
+  const cards = new Set(next.eventCards);
+  if (next.rocksBroken + next.crafted + next.fishCaught + next.discoveries > 0) cards.add('最初の一歩');
+  if (next.rocksBroken > 0 || next.crafted > 0) cards.add('開拓者');
+  if (next.fishCaught > 0) cards.add('最初の一匹');
+  if (next.discoveries > 0) cards.add('世界の外へ');
+  if (next.discoveredFish.length >= 5) cards.add('水辺の収集家');
+  const versioned = normalizeSave({ ...next, eventCards: [...cards], version: 3, updatedAt: Date.now() });
+  localStorage.setItem(KEY, JSON.stringify(versioned));
+  window.dispatchEvent(new CustomEvent<LifeQuestSave>('lifequest:save', { detail: versioned }));
+  return versioned;
+}
+
+export function loadSave(): LifeQuestSave {
+  try {
+    const raw = localStorage.getItem(KEY);
+    return normalizeSave(raw ? JSON.parse(raw) as Partial<LifeQuestSave> : initialSave);
+  } catch {
+    return normalizeSave(initialSave);
+  }
+}
+
+function loadPending(): PendingMutation[] {
+  try {
+    const raw = localStorage.getItem(PENDING_KEY);
+    const parsed = raw ? JSON.parse(raw) as PendingMutation[] : [];
+    return Array.isArray(parsed) ? parsed.slice(0, 100) : [];
+  } catch { return []; }
+}
+
+function savePending(items: PendingMutation[]) {
+  try { localStorage.setItem(PENDING_KEY, JSON.stringify(items.slice(-100))); } catch { /* local save still works */ }
+}
+
+async function fetchCloudSave(): Promise<LifeQuestSave> {
+  const token = getToken();
+  if (!token) throw new Error('pairing-required');
+  const response = await fetch(`${API}/quest/client/bootstrap`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    cache: 'no-store'
+  });
+  if (!response.ok) throw new Error(`bootstrap-${response.status}`);
+  const data = await response.json() as { save?: Partial<LifeQuestSave> };
+  if (!data.save) throw new Error('bootstrap-empty');
+  return normalizeSave(data.save);
+}
+
+async function pushMutation(item: PendingMutation) {
+  const token = getToken();
+  if (!token) throw new Error('pairing-required');
+  const response = await fetch(`${API}/quest/client/mutation`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mutationId: item.id, before: item.before, after: item.after })
+  });
+  if (!response.ok) throw new Error(`mutation-${response.status}`);
+}
+
+async function flushPendingInternal() {
+  const token = getToken();
+  if (!token) { emitCloudStatus('pairing-required'); return; }
+  emitCloudStatus('connecting');
+  let pending = loadPending();
+  while (pending.length > 0) {
+    await pushMutation(pending[0]);
+    pending = pending.slice(1);
+    savePending(pending);
+  }
+  const authoritative = await fetchCloudSave();
+  persistLocal(authoritative);
+  emitCloudStatus('connected');
+}
+
+export function flushPendingMutations() {
+  if (!syncInFlight) {
+    syncInFlight = flushPendingInternal()
+      .catch((error: unknown) => {
+        emitCloudStatus(error instanceof Error && error.message === 'pairing-required' ? 'pairing-required' : 'offline');
+      })
+      .finally(() => { syncInFlight = null; });
+  }
+  return syncInFlight;
+}
+
+export async function bootstrapCloudSave(): Promise<LifeQuestSave> {
+  const token = getToken();
+  if (!token) {
+    emitCloudStatus('pairing-required');
+    return loadSave();
+  }
+  emitCloudStatus('connecting');
+  try {
+    const remote = await fetchCloudSave();
+    persistLocal(remote);
+    await flushPendingMutations();
+    const finalState = loadSave();
+    emitCloudStatus('connected');
+    return finalState;
+  } catch {
+    emitCloudStatus('offline');
+    return loadSave();
+  }
+}
+
+export async function refreshCloudSave(): Promise<LifeQuestSave> {
+  await flushPendingMutations();
+  const token = getToken();
+  if (!token) return loadSave();
+  try {
+    const remote = await fetchCloudSave();
+    persistLocal(remote);
+    emitCloudStatus('connected');
+    return remote;
+  } catch {
+    emitCloudStatus('offline');
+    return loadSave();
+  }
+}
+
+function mutationId() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `m-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export function saveGame(next: LifeQuestSave): LifeQuestSave {
+  const before = loadSave();
+  const after = persistLocal(next);
+  const pending = loadPending();
+  pending.push({ id: mutationId(), before, after });
+  savePending(pending);
+  void flushPendingMutations();
+  return after;
+}
+
+export function updateSave(updater: (current: LifeQuestSave) => LifeQuestSave) {
+  const before = loadSave();
+  const after = persistLocal(updater(before));
+  const pending = loadPending();
+  pending.push({ id: mutationId(), before, after });
+  savePending(pending);
+  void flushPendingMutations();
+  return after;
+}
+
+export const getCloudStatus = () => cloudStatus;
