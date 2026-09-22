@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import LifeQuestGame from './game/LifeQuestGame';
+import GameIcon from './game/LegacyGameIcon';
 import {
   bootstrapCloudSave,
   createHomeScreenPairingTicket,
@@ -266,53 +267,74 @@ export default function App() {
 
   const progress = getLevel(save);
   const nextLevelXp = Math.max(0, progress.targetXp - progress.currentXp);
+  const isTown = activeScene === 'TownScene';
+  const development = save.mineLevel + save.workshopLevel;
+  const townRank = development >= 6 ? '工業都市' : development >= 4 ? '開拓町' : progress.level >= 4 ? '村' : '開拓地';
 
   return (
-    <main className="app-shell">
-      <header className="app-header">
-        <div>
-          <span className="eyebrow">PERSONAL FRONTIER RPG · V0.5</span>
-          <h1>LIFE QUEST</h1>
-        </div>
-        <div className="player-meta">
-          <div className="player-level">YUMA <b>Lv.{progress.level}</b></div>
-          <span className="world-phase">{worldPhase(clock)}</span>
-        </div>
-      </header>
+    <main className={`app-shell ${isTown ? 'town-mode' : 'facility-mode'}`}>
+      {isTown ? (
+        <header className="legacy-town-header">
+          <div className="legacy-town-identity">
+            <p><i>✦</i> LIFE QUEST <em>— もうひとつの、日常をつくる —</em></p>
+            <h1>YUMA <span>Lv.{progress.level}</span></h1>
+            <small>{townRank}・{worldPhase(clock)}</small>
+          </div>
+          <div className="legacy-town-utility">
+            <div className="legacy-wallet">
+              <span><GameIcon name="gold" size={15} />{save.gold}G</span>
+              <span className="legacy-lq-token">LQ {save.lq}</span>
+              <span><GameIcon name="energy" size={15} />{save.energy}</span>
+              <span><GameIcon name="bait" size={15} />{save.bait}</span>
+              <span><GameIcon name="ticket" size={15} />{save.explorationTickets}</span>
+              <span><GameIcon name="chest" size={15} />{save.chests}</span>
+            </div>
+            <div className="legacy-exp">
+              <div><strong>EXP {progress.currentXp}/{progress.targetXp}</strong><span>累計 {save.xp} XP</span></div>
+              <div className="legacy-exp-track"><i style={{ width: `${Math.min(100, progress.currentXp / progress.targetXp * 100)}%` }} /></div>
+            </div>
+          </div>
+        </header>
+      ) : (
+        <>
+          <header className="app-header">
+            <div>
+              <span className="eyebrow">PERSONAL FRONTIER RPG · V0.5</span>
+              <h1>LIFE QUEST</h1>
+            </div>
+            <div className="player-meta">
+              <div className="player-level">YUMA <b>Lv.{progress.level}</b></div>
+              <span className="world-phase">{worldPhase(clock)}</span>
+            </div>
+          </header>
 
-      <section className="status-panel" aria-label="冒険者ステータス">
-        <div className="status-row">
-          <span>EXP {progress.currentXp}/{progress.targetXp}</span>
-          <span>累計 {save.xp} XP · あと {nextLevelXp}</span>
-        </div>
-        <div className="xp-track"><i style={{ width: `${Math.min(100, progress.currentXp / progress.targetXp * 100)}%` }} /></div>
-        <div className="resource-row">
-          <span>✦ {save.lq}<small>LQ</small></span>
-          <span>◉ {save.gold}<small>G</small></span>
-          <span>⚡ {save.energy}</span>
-          <span>🪱 {save.bait}</span>
-          <span>🎫 {save.explorationTickets}</span>
-          <span>🎁 {save.chests}</span>
-        </div>
-      </section>
+          <section className="status-panel" aria-label="冒険者ステータス">
+            <div className="status-row">
+              <span>EXP {progress.currentXp}/{progress.targetXp}</span>
+              <span>累計 {save.xp} XP · あと {nextLevelXp}</span>
+            </div>
+            <div className="xp-track"><i style={{ width: `${Math.min(100, progress.currentXp / progress.targetXp * 100)}%` }} /></div>
+            <div className="resource-row">
+              <span>✦ {save.lq}<small>LQ</small></span>
+              <span>◉ {save.gold}<small>G</small></span>
+              <span>⚡ {save.energy}</span>
+              <span>🪱 {save.bait}</span>
+              <span>🎫 {save.explorationTickets}</span>
+              <span>🎁 {save.chests}</span>
+            </div>
+          </section>
+        </>
+      )}
 
       <div className="game-stage">
         <section className="game-frame">
           <LifeQuestGame />
         </section>
 
-        {activeScene === 'TownScene' && (
-          <nav className="town-nav" aria-label="街ショートカット">
-            <button className="active" type="button" onClick={() => navigateTo('TownScene')}>
-              <b>⌂</b><span>街</span>
-            </button>
-            <button type="button" onClick={() => navigateTo('RailwayScene')}>
-              <b>▰</b><span>鉄道</span>
-            </button>
-            <button type="button" onClick={() => navigateTo('RecordsScene')}>
-              <b>☰</b><span>記録</span>
-            </button>
-          </nav>
+        {!isTown && (
+          <button className="return-town-button" type="button" onClick={() => navigateTo('TownScene')}>
+            <GameIcon name="town" size={18} /> 街へ戻る
+          </button>
         )}
       </div>
 

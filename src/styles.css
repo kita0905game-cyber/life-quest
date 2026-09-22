@@ -383,3 +383,184 @@ h1 {
   .resource-row span { font-size: 8px; }
   .town-nav { left: 10px; right: 10px; }
 }
+
+
+/* AppDeploy v81 visual shell restored for the town screen.
+   The game artwork owns the screen; HUD becomes a restrained overlay. */
+.town-mode {
+  position: relative;
+  padding: 0;
+  background: #0a1713;
+}
+.town-mode .legacy-town-header {
+  position: absolute;
+  z-index: 30;
+  top: max(12px, env(safe-area-inset-top));
+  left: 14px;
+  right: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(128px, 42%);
+  gap: 12px;
+  align-items: start;
+  pointer-events: none;
+  text-shadow: 0 2px 8px #000c;
+}
+.legacy-town-identity p {
+  margin: 0 0 2px;
+  color: #bba577;
+  font-family: Georgia, "Noto Serif JP", serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+.legacy-town-identity p i {
+  color: #e3c16d;
+  font-style: normal;
+}
+.legacy-town-identity p em {
+  display: block;
+  margin-top: 2px;
+  color: #e9dbba;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 6px;
+  font-style: normal;
+  letter-spacing: .06em;
+}
+.legacy-town-identity h1 {
+  margin: 5px 0 0;
+  color: #fbf1d9;
+  font-family: Georgia, "Noto Serif JP", serif;
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: .03em;
+  line-height: 1;
+}
+.legacy-town-identity h1 span {
+  display: inline-block;
+  margin-left: 5px;
+  color: #d9c28a;
+  font-size: 12px;
+  font-weight: 500;
+}
+.legacy-town-identity small {
+  display: block;
+  margin-top: 8px;
+  color: #e2d7b8;
+  font-size: 9px;
+  text-shadow: 0 1px 5px #000;
+}
+.legacy-town-utility {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+.legacy-wallet {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.legacy-wallet span {
+  min-width: 0;
+  min-height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 5px;
+  border: 1px solid rgba(198,169,98,.27);
+  border-radius: 4px;
+  background: rgba(12,30,25,.78);
+  color: #f0e4c4;
+  font-size: 9px;
+  font-weight: 700;
+  backdrop-filter: blur(5px);
+}
+.legacy-wallet span:nth-child(n+3) {
+  display: none;
+}
+.legacy-lq-token {
+  color: #f2d98d !important;
+  letter-spacing: .04em;
+}
+.legacy-exp {
+  width: 100%;
+  color: #e4dbc4;
+  font-size: 8px;
+}
+.legacy-exp > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+.legacy-exp strong {
+  color: #d1be91;
+  font-weight: 500;
+}
+.legacy-exp span {
+  color: #9aab9e;
+  font-size: 7px;
+}
+.legacy-exp-track {
+  overflow: hidden;
+  height: 3px;
+  margin-top: 5px;
+  background: rgba(8,22,18,.68);
+}
+.legacy-exp-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #847348, #e7d19a);
+}
+.town-mode .game-stage {
+  width: 100%;
+}
+.town-mode .game-frame {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: #122a32;
+}
+.town-mode .game-host {
+  width: 100%;
+  aspect-ratio: 390 / 680;
+}
+.town-mode .app-footer {
+  margin: 0;
+  padding: 5px 10px max(5px, env(safe-area-inset-bottom));
+  background: #0a1713;
+}
+.town-mode .sync-line {
+  font-size: 8px;
+  opacity: .7;
+}
+.town-mode .connection-tools {
+  font-size: 8px;
+}
+.return-town-button {
+  position: absolute;
+  z-index: 50;
+  right: 12px;
+  bottom: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid rgba(211,187,126,.55);
+  border-radius: 5px;
+  background: rgba(20,40,30,.9);
+  color: #f3e5be;
+  box-shadow: 0 4px 12px #0007;
+  font-family: Georgia, "Noto Serif JP", serif;
+  font-size: 10px;
+}
+.facility-mode .game-frame {
+  border-radius: 7px;
+  border-color: rgba(201,171,98,.42);
+}
+.facility-mode .app-header,
+.facility-mode .status-panel {
+  border-radius: 5px;
+}

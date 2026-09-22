@@ -1,14 +1,14 @@
 import Phaser from 'phaser';
 import { loadSave, updateSave } from '../../save/SaveRepository';
+import { TOWN_ART_URL, addCoverImage, addPlaque } from '../assets/legacyUi';
 
 type Hotspot = {
   label: string;
-  icon: string;
   scene: string;
   x: number;
   y: number;
-  color: number;
-  active?: boolean;
+  width: number;
+  height: number;
 };
 
 function remainingMinutes(iso: string) {
@@ -21,7 +21,8 @@ export class TownScene extends Phaser.Scene {
   constructor() { super('TownScene'); }
 
   preload() {
-    this.load.image('town-v2', './assets/town-v2.png');
+    this.load.image('town-appdeploy', TOWN_ART_URL);
+    this.load.image('town-fallback', './assets/town-v2.png');
   }
 
   create() {
@@ -29,44 +30,88 @@ export class TownScene extends Phaser.Scene {
     const now = new Date();
     const season = ['冬', '冬', '春', '春', '春', '夏', '夏', '夏', '秋', '秋', '秋', '冬'][now.getMonth()];
     const hour = now.getHours();
-    const time = hour >= 5 && hour < 10 ? '朝' : hour < 17 ? '昼' : hour < 20 ? '夕方' : '夜';
+    const daypart = hour >= 5 && hour < 10 ? '朝' : hour < 17 ? '昼' : hour < 20 ? '夕方' : '夜';
     const dev = save.mineLevel + save.workshopLevel;
-    const rank = dev >= 6 ? '工業都市' : dev >= 4 ? '開拓町' : Math.max(save.mineLevel, save.workshopLevel) >= 4 ? '村' : '開拓地';
+    const rank = dev >= 6 ? '工業都市' : dev >= 4 ? '開拓町' : '開拓地';
+
+    const artKey = this.textures.exists('town-appdeploy') ? 'town-appdeploy' : 'town-fallback';
+    addCoverImage(this, artKey);
+
+    // AppDeploy版と同じく、街の絵そのものを主役にする。
+    this.add.rectangle(195, 40, 390, 80, 0x071611, 0.46).setDepth(8);
+    this.add.rectangle(195, 655, 390, 50, 0x071712, 0.58).setDepth(8);
+
+    this.add.text(15, 13, '✦ LIFE QUEST', {
+      fontFamily: 'Georgia, "Noto Serif JP", serif',
+      fontSize: '10px',
+      color: '#d7bd7a'
+    }).setDepth(20);
+
+    this.add.text(15, 31, `${rank}・${season} / ${daypart}`, {
+      fontFamily: 'Georgia, "Noto Serif JP", serif',
+      fontSize: '18px',
+      color: '#f3e5be'
+    }).setDepth(20);
+
+    this.add.text(15, 55, '建物を直接タップ', {
+      fontSize: '9px',
+      color: '#aebcae'
+    }).setDepth(20);
 
     const minerMinutes = remainingMinutes(save.minerHiredUntil);
-    const minerActive = minerMinutes > 0;
-    const wagonCount = save.wagonTransfers.length;
-    const trainCount = save.railwayTrainCount;
+    const statusText = [
+      minerMinutes > 0 ? `鉱夫 ${minerMinutes}分` : '',
+      save.railwayTrainCount > 0 ? `列車 ${save.railwayTrainCount}編成` : '',
+      save.wagonTransfers.length > 0 ? `輸送 ${save.wagonTransfers.length}便` : ''
+    ].filter(Boolean).join(' · ');
 
-    this.add.image(195, 340, 'town-v2').setDisplaySize(510, 680);
+    if (statusText) {
+      this.add.text(375, 55, statusText, {
+        fontSize: '8px',
+        color: '#d9c99f',
+        align: 'right'
+      }).setOrigin(1, 0).setDepth(20);
+    }
 
-    // Header overlay: keep the town as the visual focus while making current state readable.
-    this.add.rectangle(195, 58, 390, 116, 0x071411, 0.82);
-    this.add.rectangle(195, 113, 390, 4, 0xd5b75f, 0.24);
+    const hotspots: Hotspot[] = [
+      { label: 'BOSS城', scene: 'BossScene', x: 0.84, y: 0.08, width: 82, height: 62 },
+      { label: '博物館', scene: 'MuseumScene', x: 0.14, y: 0.19, width: 88, height: 76 },
+      { label: '探索ギルド', scene: 'ExploreScene', x: 0.46, y: 0.27, width: 100, height: 82 },
+      { label: 'マイハウス', scene: 'HouseScene', x: 0.73, y: 0.37, width: 98, height: 82 },
+      { label: '鉱山', scene: 'MineScene', x: 0.86, y: 0.55, width: 88, height: 92 },
+      { label: '広場', scene: 'GuildScene', x: 0.48, y: 0.49, width: 92, height: 70 },
+      { label: '工房', scene: 'WorkshopScene', x: 0.49, y: 0.64, width: 96, height: 84 },
+      { label: '釣り場', scene: 'FishingScene', x: 0.18, y: 0.70, width: 98, height: 90 },
+      { label: '中央駅', scene: 'RailwayScene', x: 0.82, y: 0.78, width: 105, height: 88 }
+    ];
 
-    this.add.text(16, 10, `${rank}・黄昏都市`, {
-      fontSize: '21px',
-      fontStyle: 'bold',
-      color: '#ffe6a3'
+    hotspots.forEach((spot) => {
+      const x = spot.x * 390;
+      const y = spot.y * 680;
+      const hit = this.add.zone(x, y, spot.width, spot.height)
+        .setDepth(15)
+        .setInteractive({ useHandCursor: true });
+      const plaque = addPlaque(this, x, y + spot.height * 0.34, spot.label).setAlpha(0.82);
+
+      hit.on('pointerover', () => plaque.setAlpha(1).setScale(1.04));
+      hit.on('pointerout', () => plaque.setAlpha(0.82).setScale(1));
+      hit.on('pointerdown', () => plaque.setScale(0.97));
+      hit.on('pointerup', () => {
+        plaque.setScale(1);
+        this.scene.start(spot.scene);
+      });
     });
-    this.add.text(17, 39, `${season}・${time}　施設を直接タップ`, {
-      fontSize: '11px',
-      color: '#c9d9ce'
-    });
 
-    const treasure = this.add.text(366, 18, `🎁 ${save.chests}`, {
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#ffe29a',
-      backgroundColor: '#163129dd',
-      padding: { x: 7, y: 5 }
-    }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+    const treasure = addPlaque(this, 340, 24, `宝箱 ×${save.chests}`)
+      .setOrigin(0.5)
+      .setDepth(30)
+      .setInteractive({ useHandCursor: true });
 
     treasure.on('pointerup', () => {
       const current = loadSave();
       if (current.chests < 1) {
-        treasure.setText('🎁 空');
-        this.time.delayedCall(1200, () => treasure.setText(`🎁 ${loadSave().chests}`));
+        treasure.setText('宝箱は空');
+        this.time.delayedCall(1000, () => treasure.setText(`宝箱 ×${loadSave().chests}`));
         return;
       }
 
@@ -86,97 +131,13 @@ export class TownScene extends Phaser.Scene {
         crystal: value.crystal + (Math.random() < .08 ? 1 : 0),
         explorationTickets: value.explorationTickets + (Math.random() < .1 ? 1 : 0)
       }));
-      treasure.setText(`+${gold}G 石+${stone}`);
-      this.time.delayedCall(1500, () => treasure.setText(`🎁 ${loadSave().chests}`));
+      treasure.setText(`+${gold}G · 石材+${stone}`);
+      this.time.delayedCall(1200, () => treasure.setText(`宝箱 ×${loadSave().chests}`));
     });
 
-    const liveItems = [
-      {
-        x: 70,
-        title: minerActive ? '鉱夫 稼働中' : '鉱夫 待機',
-        detail: minerActive ? `あと約${minerMinutes}分` : '山岳鉱山',
-        scene: 'MineScene',
-        active: minerActive
-      },
-      {
-        x: 195,
-        title: trainCount > 0 ? `列車 ${trainCount}編成` : '列車 未製造',
-        detail: trainCount > 0 ? '鉄道へ' : '鉄鉱石100で製造',
-        scene: 'RailwayScene',
-        active: trainCount > 0
-      },
-      {
-        x: 320,
-        title: wagonCount > 0 ? `馬車輸送 ${wagonCount}便` : '輸送 待機',
-        detail: wagonCount > 0 ? '地域間を輸送中' : '山岳→拠点',
-        scene: 'RailwayScene',
-        active: wagonCount > 0
-      }
-    ];
-
-    liveItems.forEach((item) => {
-      const box = this.add.rectangle(item.x, 84, 116, 39, 0x0b211c, 0.9)
-        .setStrokeStyle(1, item.active ? 0xe1c264 : 0x607a6d, item.active ? 0.85 : 0.5)
-        .setInteractive({ useHandCursor: true });
-      this.add.text(item.x - 48, 72, item.title, {
-        fontSize: '9px',
-        fontStyle: 'bold',
-        color: item.active ? '#ffe7a2' : '#d6e1db'
-      });
-      this.add.text(item.x - 48, 87, item.detail, {
-        fontSize: '8px',
-        color: '#9fb2a8'
-      });
-      this.add.text(item.x + 48, 80, '›', {
-        fontSize: '17px',
-        color: '#e6d49c'
-      }).setOrigin(0.5);
-      box.on('pointerup', () => this.scene.start(item.scene));
-    });
-
-    const hotspots: Hotspot[] = [
-      { label: '探索', icon: '✦', scene: 'ExploreScene', x: 58, y: 166, color: 0x2f7253 },
-      { label: '鉱山', icon: '⛏', scene: 'MineScene', x: 195, y: 196, color: 0x6a5c50, active: minerActive },
-      { label: 'BOSS', icon: '♜', scene: 'BossScene', x: 325, y: 156, color: 0x6d3445 },
-      { label: '鉄道', icon: '▰', scene: 'RailwayScene', x: 326, y: 274, color: 0x405d55, active: trainCount > 0 || wagonCount > 0 },
-      { label: '図鑑', icon: '▦', scene: 'MuseumScene', x: 68, y: 350, color: 0x316874 },
-      { label: 'ギルド', icon: '⚑', scene: 'GuildScene', x: 197, y: 348, color: 0x3e536f },
-      { label: '工房', icon: '⚒', scene: 'WorkshopScene', x: 320, y: 390, color: 0x8b4a2d },
-      { label: '家', icon: '⌂', scene: 'HouseScene', x: 74, y: 500, color: 0x6d543b },
-      { label: '記録', icon: '☰', scene: 'RecordsScene', x: 330, y: 505, color: 0x384f68 },
-      { label: '釣り', icon: '◜', scene: 'FishingScene', x: 205, y: 575, color: 0x256b85 }
-    ];
-
-    hotspots.forEach(({ label, icon, scene, x, y, color, active }) => {
-      this.add.circle(x + 2, y + 4, 39, 0x000000, 0.25);
-      const halo = this.add.circle(x, y, 36, color, 0.94)
-        .setStrokeStyle(2.5, 0xf0cf78, 0.95)
-        .setInteractive({ useHandCursor: true });
-
-      this.add.circle(x, y, 31, 0xffffff, 0.025).setStrokeStyle(1, 0xffe7a2, 0.2);
-      this.add.text(x, y - 7, icon, {
-        fontSize: '23px',
-        color: '#fff2bd'
-      }).setOrigin(0.5);
-      this.add.text(x, y + 24, label, {
-        fontSize: '12px',
-        fontStyle: 'bold',
-        color: '#fff7d7',
-        backgroundColor: '#081411dd',
-        padding: { x: 7, y: 3 }
-      }).setOrigin(0.5);
-
-      if (active) {
-        this.add.circle(x + 27, y - 27, 4.5, 0xe55d54, 1)
-          .setStrokeStyle(1.5, 0xffd7a6, 0.9);
-      }
-
-      halo.on('pointerdown', () => halo.setAlpha(0.72));
-      halo.on('pointerout', () => halo.setAlpha(1));
-      halo.on('pointerup', () => {
-        halo.setAlpha(1);
-        this.scene.start(scene);
-      });
-    });
+    const records = addPlaque(this, 342, 642, '記録')
+      .setDepth(30)
+      .setInteractive({ useHandCursor: true });
+    records.on('pointerup', () => this.scene.start('RecordsScene'));
   }
 }
