@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import LifeQuestGame from './game/LifeQuestGame';
 import {
   bootstrapCloudSave,
-  getBrowserPairingLink,
+  getSafariPairingBridgeUrl,
   getCloudStatus,
   loadSave,
   pairWithLunaCore,
@@ -34,7 +34,6 @@ export default function App() {
   const [pairingToken, setPairingToken] = useState('');
   const [pairingBusy, setPairingBusy] = useState(false);
   const [pairingError, setPairingError] = useState('');
-  const [pairingCopied, setPairingCopied] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -93,15 +92,11 @@ export default function App() {
     }
   }
 
-  async function handleCopyPairingLink() {
-    setPairingCopied(false);
+  function handleOpenSafari() {
     try {
-      const link = getBrowserPairingLink();
-      await navigator.clipboard.writeText(link);
-      setPairingCopied(true);
-      window.setTimeout(() => setPairingCopied(false), 3000);
+      window.location.assign(getSafariPairingBridgeUrl());
     } catch {
-      setPairingCopied(false);
+      setPairingError('Safari接続用リンクを作れませんでした。LUNA COREの接続状態を確認してください。');
     }
   }
 
@@ -140,7 +135,7 @@ export default function App() {
 
           <div className="pairing-guide">
             <b>いちばん簡単</b>
-            <span>接続済みのLIFE QUESTで「Safari接続リンクをコピー」→ Safariのアドレス欄へ貼り付け。</span>
+            <span>接続済みのLIFE QUESTで「Safariで開いて接続」を1回タップするだけです。</span>
           </div>
 
           <form className="pairing-form" onSubmit={handlePair}>
@@ -192,8 +187,8 @@ export default function App() {
       <div className="app-footer">
         <p className="footnote">V0.5 — {cloudLabel[cloud]} / LUNA CORE正本・自動同期</p>
         {cloud === 'connected' && (
-          <button className="pairing-link-button" type="button" onClick={handleCopyPairingLink}>
-            {pairingCopied ? 'Safari接続リンクをコピー済み' : 'Safari接続リンクをコピー'}
+          <button className="pairing-link-button" type="button" onClick={handleOpenSafari}>
+            Safariで開いて接続
           </button>
         )}
       </div>
