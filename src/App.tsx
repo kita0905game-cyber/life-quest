@@ -268,6 +268,8 @@ export default function App() {
   const progress = getLevel(save);
   const nextLevelXp = Math.max(0, progress.targetXp - progress.currentXp);
   const isTown = activeScene === 'TownScene';
+  const development = save.mineLevel + save.workshopLevel;
+  const townRank = development >= 6 ? '工業都市' : development >= 4 ? '開拓町' : progress.level >= 4 ? '村' : '開拓地';
 
   return (
     <main className={`app-shell ${isTown ? 'town-mode' : 'facility-mode'}`}>
@@ -276,7 +278,7 @@ export default function App() {
           <div className="legacy-town-identity">
             <p><i>✦</i> LIFE QUEST <em>— もうひとつの、日常をつくる —</em></p>
             <h1>YUMA <span>Lv.{progress.level}</span></h1>
-            <small>{worldPhase(clock)}</small>
+            <small>{townRank}・{worldPhase(clock)}</small>
           </div>
           <div className="legacy-town-utility">
             <div className="legacy-wallet">
