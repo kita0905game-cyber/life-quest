@@ -24,12 +24,8 @@ export class ExploreScene extends Phaser.Scene {
 
     const graphics = this.add.graphics().setDepth(7);
     graphics.lineStyle(1.4, 0xfff3c3, 0.58);
-    graphics.beginPath();
-    graphics.moveTo(207, 490);
-    graphics.quadraticCurveTo(145, 390, 98, 238);
-    graphics.moveTo(207, 490);
-    graphics.quadraticCurveTo(255, 360, 293, 211);
-    graphics.strokePath();
+    graphics.lineBetween(207, 490, 98, 238);
+    graphics.lineBetween(207, 490, 293, 211);
 
     const positions: Record<string, { x: number; y: number }> = {
       森: { x: 98, y: 238 },
