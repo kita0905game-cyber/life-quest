@@ -12,6 +12,20 @@ import { GuildScene } from './scenes/GuildScene';
 import { HouseScene } from './scenes/HouseScene';
 import { RailwayScene } from './scenes/RailwayScene';
 
+const SCENE_KEYS = [
+  'TownScene',
+  'MineScene',
+  'FishingScene',
+  'WorkshopScene',
+  'ExploreScene',
+  'MuseumScene',
+  'BossScene',
+  'RecordsScene',
+  'GuildScene',
+  'HouseScene',
+  'RailwayScene'
+] as const;
+
 export default function LifeQuestGame() {
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +46,41 @@ export default function LifeQuestGame() {
       input: { activePointers: 3 }
     });
 
-    return () => game.destroy(true);
+    const onNavigate = (event: Event) => {
+      const custom = event as CustomEvent<string>;
+      const sceneKey = custom.detail;
+      if (!SCENE_KEYS.includes(sceneKey as (typeof SCENE_KEYS)[number])) return;
+      if (game.scene.isActive(sceneKey)) return;
+      game.scene.start(sceneKey);
+    };
+
+    const subscriptions: Array<{ scene: Phaser.Scene; handler: () => void }> = [];
+    const attachSceneSignals = () => {
+      SCENE_KEYS.forEach((sceneKey) => {
+        const scene = game.scene.getScene(sceneKey);
+        const handler = () => {
+          window.dispatchEvent(new CustomEvent<string>('lifequest:scene', { detail: sceneKey }));
+        };
+        scene.events.on(Phaser.Scenes.Events.START, handler);
+        subscriptions.push({ scene, handler });
+      });
+
+      const activeScene = game.scene.getScenes(true)[0];
+      if (activeScene) {
+        window.dispatchEvent(new CustomEvent<string>('lifequest:scene', { detail: activeScene.scene.key }));
+      }
+    };
+
+    window.addEventListener('lifequest:navigate', onNavigate);
+    game.events.once(Phaser.Core.Events.READY, attachSceneSignals);
+
+    return () => {
+      window.removeEventListener('lifequest:navigate', onNavigate);
+      subscriptions.forEach(({ scene, handler }) => {
+        scene.events.off(Phaser.Scenes.Events.START, handler);
+      });
+      game.destroy(true);
+    };
   }, []);
 
   return <div className="game-host" ref={hostRef} />;
