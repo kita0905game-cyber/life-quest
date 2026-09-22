@@ -46,8 +46,7 @@ export function addSceneHeading(
   scene.add.text(20, 18, eyebrow, {
     fontFamily: 'Georgia, "Noto Serif JP", serif',
     fontSize: '9px',
-    color: '#ead29d',
-    letterSpacing: 1
+    color: '#ead29d'
   }).setDepth(20);
 
   scene.add.text(20, 36, title, {
