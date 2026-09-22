@@ -81,13 +81,6 @@ export class TownScene extends Phaser.Scene {
     hotspots.forEach((spot) => this.addHotspot(spot));
 
     this.addTreasure(save.chests);
-
-    this.add.text(195, 658, '建物を直接タップ', {
-      fontSize: '8px',
-      color: '#c6b98e',
-      backgroundColor: '#10241ed1',
-      padding: { x: 8, y: 5 }
-    }).setOrigin(.5).setDepth(20);
   }
 
   private addHotspot(spot: Hotspot) {
