@@ -180,11 +180,10 @@ export async function pairWithLunaCore(rawToken: string): Promise<LifeQuestSave>
   }
 }
 
-export function getBrowserPairingLink() {
+export function getSafariPairingBridgeUrl() {
   const token = getToken();
   if (!token) throw new Error('pairing-required');
-  const base = `${window.location.origin}${window.location.pathname}${window.location.search}`;
-  return `${base}#lqToken=${encodeURIComponent(token)}`;
+  return `${API}/quest/browser-pair#lqToken=${encodeURIComponent(token)}`;
 }
 
 async function pushMutation(item: PendingMutation) {
