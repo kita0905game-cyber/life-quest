@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1170" height="2040" viewBox="0 0 1170 2040">
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#081812"/>
+    <stop offset=".16" stop-color="#12271f"/>
+    <stop offset=".42" stop-color="#274039"/>
+    <stop offset="1" stop-color="#425749"/>
+  </linearGradient>
+  <linearGradient id="stone" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#7f8276"/>
+    <stop offset=".48" stop-color="#555b53"/>
+    <stop offset="1" stop-color="#333b37"/>
+  </linearGradient>
+  <linearGradient id="roof" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#203e39"/>
+    <stop offset="1" stop-color="#102924"/>
+  </linearGradient>
+  <linearGradient id="roofBlue" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#294a50"/>
+    <stop offset="1" stop-color="#17343a"/>
+  </linearGradient>
+  <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#315f66"/>
+    <stop offset=".5" stop-color="#214b52"/>
+    <stop offset="1" stop-color="#15343a"/>
+  </linearGradient>
+  <radialGradient id="lamp">
+    <stop offset="0" stop-color="#ffd784" stop-opacity=".95"/>
+    <stop offset=".35" stop-color="#d49d4c" stop-opacity=".45"/>
+    <stop offset="1" stop-color="#d49d4c" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="forgeGlow">
+    <stop offset="0" stop-color="#ffad55" stop-opacity=".85"/>
+    <stop offset=".5" stop-color="#bb6738" stop-opacity=".35"/>
+    <stop offset="1" stop-color="#6f3b28" stop-opacity="0"/>
+  </radialGradient>
+  <filter id="soft"><feGaussianBlur stdDeviation="9"/></filter>
+  <filter id="smoke"><feGaussianBlur stdDeviation="16"/></filter>
+  <pattern id="cobble" width="54" height="36" patternUnits="userSpaceOnUse">
+    <path d="M2 18 Q14 4 28 13 T52 18 M-8 36 Q7 22 21 30 T45 35" fill="none" stroke="#909282" stroke-opacity=".22" stroke-width="3"/>
+  </pattern>
+</defs>
+
+<!-- atmosphere / quiet HUD-safe upper area -->
+<rect width="1170" height="2040" fill="url(#sky)"/>
+<path d="M0 350 C180 270 330 310 475 258 C610 210 775 255 930 210 C1030 182 1110 198 1170 215 L1170 590 L0 590Z" fill="#1a302a" opacity=".72"/>
+<path d="M0 420 C220 345 355 420 540 340 C730 255 890 350 1170 300 L1170 670 L0 670Z" fill="#294038" opacity=".78"/>
+<g opacity=".25">
+  <circle cx="150" cy="250" r="110" fill="#17332a"/>
+  <circle cx="1000" cy="260" r="140" fill="#17332a"/>
+</g>
+
+<!-- terrain -->
+<path d="M0 520 C190 470 330 520 510 490 C730 450 870 495 1170 455 L1170 2040 L0 2040Z" fill="#435747"/>
+<path d="M0 710 C205 620 325 680 470 625 C650 555 820 670 1170 575 L1170 2040 L0 2040Z" fill="#51604c"/>
+<path d="M0 1500 C220 1430 390 1490 585 1450 C780 1408 975 1455 1170 1390 L1170 2040 L0 2040Z" fill="#32483d" opacity=".7"/>
+
+<!-- central stone road network -->
+<path d="M575 675 C555 875 555 1040 575 1240 C595 1445 600 1655 585 2040" fill="none" stroke="#ada790" stroke-width="175" opacity=".46"/>
+<path d="M115 1045 C340 1030 520 1060 585 1080 C760 1130 930 1100 1115 1025" fill="none" stroke="#aaa48d" stroke-width="132" opacity=".42"/>
+<path d="M160 1480 C365 1405 515 1325 585 1240 C680 1320 825 1420 1015 1510" fill="none" stroke="#9e9985" stroke-width="95" opacity=".38"/>
+<path d="M0 720 H1170 V2040 H0Z" fill="url(#cobble)" opacity=".45"/>
+
+<!-- river upper-right flowing down right edge -->
+<path d="M1170 520 C1010 570 875 690 900 825 C930 995 1070 1115 1008 1295 C960 1440 840 1545 865 1710 C885 1840 1025 1940 1170 1990Z" fill="url(#water)"/>
+<path d="M1168 665 C1050 690 976 760 982 835 C990 936 1080 1030 1045 1150" fill="none" stroke="#9cc0b5" stroke-opacity=".33" stroke-width="10"/>
+<path d="M1100 1310 C1010 1410 955 1515 962 1610 C968 1710 1032 1805 1130 1865" fill="none" stroke="#91b9b0" stroke-opacity=".27" stroke-width="8"/>
+
+<!-- mine upper-left -->
+<g id="mine">
+  <path d="M58 770 L180 590 L365 625 L438 785 L405 925 L85 925Z" fill="#293631"/>
+  <path d="M85 770 L200 625 L338 650 L407 785 L382 900 L108 900Z" fill="url(#stone)"/>
+  <path d="M160 900 Q155 700 260 676 Q366 704 354 900Z" fill="#091411"/>
+  <path d="M165 899 Q166 730 260 709 Q349 735 345 899" fill="none" stroke="#745536" stroke-width="28"/>
+  <path d="M173 785 H345 M208 720 V900 M314 720 V900" stroke="#997047" stroke-width="18" opacity=".9"/>
+  <circle cx="139" cy="730" r="58" fill="url(#lamp)"/>
+  <rect x="130" y="712" width="15" height="42" rx="4" fill="#d0a45b"/>
+  <path d="M118 920 L400 920" stroke="#7e6b50" stroke-width="16"/>
+  <path d="M115 946 L398 946" stroke="#2f3b35" stroke-width="18"/>
+</g>
+
+<!-- fishing pier upper-right -->
+<g id="fishing">
+  <path d="M735 715 C828 650 926 630 1028 660 L1090 800 C1025 830 930 845 840 815Z" fill="#364d40" opacity=".9"/>
+  <path d="M790 700 L1030 700 L1055 790 L810 805Z" fill="#785c3e"/>
+  <path d="M810 718 L1040 718 M815 750 L1046 750 M820 782 L1052 782" stroke="#af8656" stroke-width="9" opacity=".7"/>
+  <path d="M835 700 V855 M915 700 V860 M995 700 V852" stroke="#493728" stroke-width="18"/>
+  <path d="M804 850 C885 870 960 870 1042 845" fill="none" stroke="#c7b178" stroke-width="7"/>
+  <path d="M910 610 Q955 560 1000 610 L990 680 L925 680Z" fill="#213833"/>
+  <path d="M940 605 L960 550 L980 605" fill="none" stroke="#b59b68" stroke-width="8"/>
+  <circle cx="794" cy="690" r="52" fill="url(#lamp)"/>
+</g>
+
+<!-- town center -->
+<g opacity=".96">
+  <circle cx="585" cy="1080" r="125" fill="#6b725f"/>
+  <circle cx="585" cy="1080" r="83" fill="#49594d"/>
+  <circle cx="585" cy="1080" r="45" fill="#2d4a46"/>
+  <path d="M585 1008 V1152 M513 1080 H657" stroke="#a6b8aa" stroke-width="9" opacity=".65"/>
+  <circle cx="585" cy="1080" r="18" fill="#c6a763"/>
+</g>
+
+<!-- background town houses -->
+<g opacity=".92">
+  <g transform="translate(420 750)">
+    <rect width="150" height="130" y="70" fill="#64675d"/><path d="M-14 78 L75 5 L165 78Z" fill="url(#roofBlue)"/>
+    <rect x="30" y="112" width="34" height="50" fill="#d0a95f"/><rect x="91" y="112" width="30" height="30" fill="#d0a95f"/>
+  </g>
+  <g transform="translate(540 650)">
+    <rect width="160" height="150" y="82" fill="#6e7063"/><path d="M-18 90 L80 0 L178 90Z" fill="url(#roof)"/>
+    <rect x="24" y="130" width="36" height="42" fill="#d6af64"/><rect x="104" y="130" width="32" height="42" fill="#d6af64"/>
+  </g>
+  <g transform="translate(675 880)">
+    <rect width="150" height="128" y="72" fill="#64685f"/><path d="M-12 80 L75 10 L162 80Z" fill="url(#roofBlue)"/>
+    <rect x="28" y="115" width="32" height="36" fill="#ccaa62"/><rect x="91" y="115" width="32" height="36" fill="#ccaa62"/>
+  </g>
+  <g transform="translate(300 980)">
+    <rect width="145" height="118" y="62" fill="#68695f"/><path d="M-10 70 L72 3 L155 70Z" fill="url(#roof)"/>
+    <rect x="26" y="102" width="30" height="34" fill="#c9a45c"/><rect x="88" y="102" width="30" height="34" fill="#c9a45c"/>
+  </g>
+</g>
+
+<!-- forge lower-left -->
+<g id="forge">
+  <ellipse cx="220" cy="1565" rx="220" ry="235" fill="url(#forgeGlow)" filter="url(#soft)"/>
+  <rect x="72" y="1500" width="340" height="290" rx="16" fill="#4e5149" stroke="#8d7a58" stroke-width="12"/>
+  <path d="M42 1510 L240 1325 L444 1510Z" fill="#49372c"/>
+  <path d="M94 1505 L240 1370 L393 1505" fill="none" stroke="#9f7546" stroke-width="18"/>
+  <rect x="115" y="1550" width="112" height="128" rx="10" fill="#231914" stroke="#8a5a32" stroke-width="12"/>
+  <rect x="270" y="1545" width="82" height="75" rx="6" fill="#ec9b45" opacity=".72"/>
+  <rect x="270" y="1645" width="82" height="75" rx="6" fill="#d8893d" opacity=".66"/>
+  <rect x="330" y="1320" width="52" height="170" fill="#50493f"/>
+  <path d="M345 1290 C318 1220 370 1190 345 1125 C420 1190 390 1250 380 1300Z" fill="#8d9b8d" opacity=".22" filter="url(#smoke)"/>
+  <circle cx="108" cy="1518" r="70" fill="url(#lamp)"/>
+</g>
+
+<!-- exploration guild lower-right -->
+<g id="guild">
+  <rect x="742" y="1490" width="340" height="305" rx="18" fill="#5a6159" stroke="#8e805e" stroke-width="12"/>
+  <path d="M704 1505 L912 1285 L1120 1505Z" fill="url(#roofBlue)"/>
+  <path d="M760 1490 L912 1332 L1064 1490" fill="none" stroke="#9c8452" stroke-width="15"/>
+  <rect x="868" y="1598" width="92" height="197" rx="46" fill="#192923" stroke="#8c7856" stroke-width="10"/>
+  <rect x="785" y="1562" width="62" height="82" rx="7" fill="#c4a45c" opacity=".72"/>
+  <rect x="980" y="1562" width="62" height="82" rx="7" fill="#c4a45c" opacity=".72"/>
+  <circle cx="912" cy="1452" r="43" fill="#243b38" stroke="#ad9663" stroke-width="9"/>
+  <path d="M912 1424 L924 1453 L912 1480 L900 1453Z" fill="#c6aa69"/>
+  <path d="M883 1452 L912 1440 L941 1452 L912 1464Z" fill="#8f7a52"/>
+  <circle cx="1052" cy="1518" r="70" fill="url(#lamp)"/>
+</g>
+
+<!-- railway lower edge -->
+<g opacity=".78">
+  <path d="M550 1885 C745 1855 935 1860 1170 1810" fill="none" stroke="#3d403b" stroke-width="56"/>
+  <path d="M550 1871 C745 1842 935 1847 1170 1798 M550 1900 C745 1870 935 1875 1170 1825" fill="none" stroke="#a4936f" stroke-width="8"/>
+  <path d="M600 1855 L620 1910 M690 1842 L710 1897 M785 1830 L805 1885 M880 1817 L900 1872 M980 1800 L1000 1855 M1080 1780 L1100 1835" stroke="#77644a" stroke-width="13"/>
+</g>
+
+<!-- trees and greenery -->
+<g fill="#1f3b2e" opacity=".96">
+  <circle cx="52" cy="1050" r="78"/><circle cx="115" cy="1130" r="62"/><circle cx="1030" cy="1020" r="82"/>
+  <circle cx="1100" cy="1190" r="70"/><circle cx="490" cy="1280" r="60"/><circle cx="670" cy="1320" r="72"/>
+  <circle cx="470" cy="1760" r="75"/><circle cx="670" cy="1780" r="68"/><circle cx="58" cy="1890" r="100"/>
+</g>
+<g fill="#345743" opacity=".92">
+  <circle cx="80" cy="980" r="52"/><circle cx="1065" cy="955" r="50"/><circle cx="515" cy="1245" r="42"/>
+  <circle cx="645" cy="1265" r="46"/><circle cx="440" cy="1825" r="50"/><circle cx="705" cy="1840" r="52"/>
+</g>
+
+<!-- lantern pools -->
+<g opacity=".72">
+  <circle cx="470" cy="1010" r="48" fill="url(#lamp)"/>
+  <circle cx="700" cy="1035" r="48" fill="url(#lamp)"/>
+  <circle cx="480" cy="1425" r="55" fill="url(#lamp)"/>
+  <circle cx="690" cy="1425" r="55" fill="url(#lamp)"/>
+</g>
+
+<!-- subtle top readability veil, no UI baked in -->
+<rect x="0" y="0" width="1170" height="320" fill="#06120e" opacity=".18"/>
+</svg>
