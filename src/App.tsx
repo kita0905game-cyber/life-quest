@@ -2,10 +2,12 @@ import { useEffect, useState, type FormEvent } from 'react';
 import LifeQuestGame from './game/LifeQuestGame';
 import {
   bootstrapCloudSave,
+  createHomeScreenPairingTicket,
   getSafariPairingBridgeUrl,
   getCloudStatus,
   loadSave,
   pairWithLunaCore,
+  redeemHomeScreenPairingCode,
   refreshCloudSave,
   type CloudStatus,
   type LifeQuestSave
@@ -24,6 +26,8 @@ function pairingErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : '';
   if (message === 'invalid-token') return '接続トークンが違います。接続済みLIFE QUESTから新しい接続リンクを作ってください。';
   if (message === 'token-required') return '接続トークンを入力してください。';
+  if (message === 'pairing-code-required') return 'ホーム画面接続コードを入力してください。';
+  if (message === 'pairing_code_expired' || message === 'pairing_code_not_found' || message === 'invalid_pairing_code') return 'ホーム画面接続コードが無効か期限切れです。Safari側で新しいコードを発行してください。';
   return 'LUNA COREへ接続できませんでした。通信状態を確認して、もう一度試してください。';
 }
 
@@ -34,6 +38,9 @@ export default function App() {
   const [pairingToken, setPairingToken] = useState('');
   const [pairingBusy, setPairingBusy] = useState(false);
   const [pairingError, setPairingError] = useState('');
+  const [pairingCode, setPairingCode] = useState('');
+  const [homePairMessage, setHomePairMessage] = useState('');
+  const [homePairCode, setHomePairCode] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -92,6 +99,53 @@ export default function App() {
     }
   }
 
+  async function connectWithPairingCode(rawCode: string) {
+    if (pairingBusy) return;
+    setPairingBusy(true);
+    setPairingError('');
+    try {
+      const next = await redeemHomeScreenPairingCode(rawCode);
+      setSave(next);
+      setPairingCode('');
+      setCloud('connected');
+    } catch (error) {
+      setPairingError(pairingErrorMessage(error));
+    } finally {
+      setPairingBusy(false);
+    }
+  }
+
+  async function handlePairingCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await connectWithPairingCode(pairingCode);
+  }
+
+  async function handleClipboardPair() {
+    try {
+      const value = await navigator.clipboard.readText();
+      await connectWithPairingCode(value);
+    } catch {
+      setPairingError('クリップボードを読めませんでした。下の接続コード欄へ貼り付けてください。');
+    }
+  }
+
+  async function handlePrepareHomeScreen() {
+    setHomePairMessage('');
+    setHomePairCode('');
+    try {
+      const ticket = await createHomeScreenPairingTicket();
+      setHomePairCode(ticket.code);
+      try {
+        await navigator.clipboard.writeText(ticket.clipboardText);
+        setHomePairMessage('ホーム画面接続コードをコピーしました。10分以内にホーム画面版LIFE QUESTを開いて「Safariから接続」を押してください。');
+      } catch {
+        setHomePairMessage('コピーできませんでした。表示中の接続コードをホーム画面版LIFE QUESTへ入力してください。');
+      }
+    } catch {
+      setHomePairMessage('ホーム画面接続コードを発行できませんでした。少し待ってからもう一度試してください。');
+    }
+  }
+
   function handleOpenPairingPage() {
     try {
       window.location.assign(getSafariPairingBridgeUrl());
@@ -134,9 +188,32 @@ export default function App() {
           </p>
 
           <div className="pairing-guide">
-            <b>いちばん簡単</b>
-            <span>接続済みのLIFE QUESTで「Safari接続ページを開く」をタップし、接続URLをSafariへ渡します。</span>
+            <b>ホーム画面版を接続する</b>
+            <span>Safariで接続済みのLIFE QUESTを開き、「ホーム画面接続を準備」でコードをコピーしてから戻ってきてください。</span>
+            <button className="pairing-action-button" type="button" onClick={handleClipboardPair} disabled={pairingBusy}>
+              {pairingBusy ? '接続中…' : 'Safariから接続'}
+            </button>
           </div>
+
+          <form className="pairing-form" onSubmit={handlePairingCode}>
+            <label htmlFor="lq-pair-code">ホーム画面接続コード</label>
+            <input
+              id="lq-pair-code"
+              type="text"
+              value={pairingCode}
+              onChange={(event) => setPairingCode(event.target.value)}
+              placeholder="例: ABCD234XYZ"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              disabled={pairingBusy}
+            />
+            <button type="submit" disabled={pairingBusy || !pairingCode.trim()}>
+              {pairingBusy ? '接続中…' : '接続コードで接続'}
+            </button>
+          </form>
+
+          <div className="pairing-divider"><span>または</span></div>
 
           <form className="pairing-form" onSubmit={handlePair}>
             <label htmlFor="lq-token">接続トークンを直接入力する場合</label>
@@ -187,9 +264,16 @@ export default function App() {
       <div className="app-footer">
         <p className="footnote">V0.5 — {cloudLabel[cloud]} / LUNA CORE正本・自動同期</p>
         {cloud === 'connected' && (
-          <button className="pairing-link-button" type="button" onClick={handleOpenPairingPage}>
-            Safari接続ページを開く
-          </button>
+          <>
+            <button className="pairing-link-button" type="button" onClick={handlePrepareHomeScreen}>
+              ホーム画面接続を準備
+            </button>
+            {homePairMessage && <p className="home-pair-message">{homePairMessage}</p>}
+            {homePairCode && <p className="home-pair-code">接続コード {homePairCode}</p>}
+            <button className="pairing-link-button secondary-link" type="button" onClick={handleOpenPairingPage}>
+              Safari接続ページを開く
+            </button>
+          </>
         )}
       </div>
     </main>
