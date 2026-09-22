@@ -174,10 +174,6 @@ export default function App() {
     }
   }
 
-  function navigateTo(sceneKey: string) {
-    window.dispatchEvent(new CustomEvent<string>('lifequest:navigate', { detail: sceneKey }));
-  }
-
   if (!ready) {
     return (
       <main className="app-shell">
@@ -296,24 +292,10 @@ export default function App() {
         </div>
       </section>
 
-      <div className="game-stage">
+      <div className={`game-stage ${activeScene === 'TownScene' ? 'town-stage' : ''}`}>
         <section className="game-frame">
           <LifeQuestGame />
         </section>
-
-        {activeScene === 'TownScene' && (
-          <nav className="town-nav" aria-label="街ショートカット">
-            <button className="active" type="button" onClick={() => navigateTo('TownScene')}>
-              <b>⌂</b><span>街</span>
-            </button>
-            <button type="button" onClick={() => navigateTo('RailwayScene')}>
-              <b>▰</b><span>鉄道</span>
-            </button>
-            <button type="button" onClick={() => navigateTo('RecordsScene')}>
-              <b>☰</b><span>記録</span>
-            </button>
-          </nav>
-        )}
       </div>
 
       <div className="app-footer">
