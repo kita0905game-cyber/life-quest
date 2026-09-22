@@ -186,6 +186,57 @@ export function getSafariPairingBridgeUrl() {
   return `${API}/quest/browser-pair#lqToken=${encodeURIComponent(token)}`;
 }
 
+export async function createHomeScreenPairingTicket() {
+  const token = getToken();
+  if (!token) throw new Error('pairing-required');
+  const response = await fetch(`${API}/quest/client/pair/issue`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    cache: 'no-store'
+  });
+  const data = await response.json() as {
+    error?: string;
+    ticket?: { code?: string; expiresAt?: string };
+  };
+  if (!response.ok || !data.ticket?.code) throw new Error(data.error ?? `pair-issue-${response.status}`);
+  return {
+    code: data.ticket.code,
+    clipboardText: `LQPAIR:${data.ticket.code}`,
+    expiresAt: data.ticket.expiresAt ?? ''
+  };
+}
+
+function normalizePairingCode(rawCode: string) {
+  return rawCode.trim().replace(/^LQPAIR:/i, '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+}
+
+export async function redeemHomeScreenPairingCode(rawCode: string): Promise<LifeQuestSave> {
+  const code = normalizePairingCode(rawCode);
+  if (!code) throw new Error('pairing-code-required');
+  emitCloudStatus('connecting');
+  try {
+    const response = await fetch(`${API}/quest/client/pair/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ code }),
+      cache: 'no-store'
+    });
+    const data = await response.json() as {
+      error?: string;
+      token?: string;
+      save?: Partial<LifeQuestSave>;
+    };
+    if (!response.ok || !data.token || !data.save) throw new Error(data.error ?? `pair-redeem-${response.status}`);
+    localStorage.setItem(TOKEN_KEY, data.token);
+    const next = persistLocal(normalizeSave(data.save));
+    emitCloudStatus('connected');
+    return next;
+  } catch (error) {
+    emitCloudStatus('pairing-required');
+    throw error;
+  }
+}
+
 async function pushMutation(item: PendingMutation) {
   const token = getToken();
   if (!token) throw new Error('pairing-required');
