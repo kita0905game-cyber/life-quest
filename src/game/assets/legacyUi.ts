@@ -2,6 +2,19 @@ import Phaser from 'phaser';
 
 export const TOWN_ART_URL = 'https://raw.githubusercontent.com/kita0905game-cyber/life-quest-assets/main/life-quest-ideal.png';
 
+export function addCoverImage(scene: Phaser.Scene, textureKey: string, width = 390, height = 680) {
+  const texture = scene.textures.get(textureKey);
+  const source = texture.getSourceImage() as { width: number; height: number };
+  const image = scene.add.image(width / 2, height / 2, textureKey);
+  if (source?.width && source?.height) {
+    const scale = Math.max(width / source.width, height / source.height);
+    image.setScale(scale);
+  } else {
+    image.setDisplaySize(width, height);
+  }
+  return image;
+}
+
 export function ensureGridFrames(scene: Phaser.Scene, textureKey: string, columns: number, rows: number, prefix: string) {
   const texture = scene.textures.get(textureKey);
   const source = texture.getSourceImage() as { width: number; height: number };
