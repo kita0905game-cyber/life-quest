@@ -1,55 +1,208 @@
 import Phaser from 'phaser';
 import { loadSave, updateSave } from '../../save/SaveRepository';
-import { addBackButton, addTitle } from './ui';
+import { MATERIAL_ATLAS, MATERIAL_ATLAS_COLUMNS, MATERIAL_ATLAS_ROWS } from '../assets/legacyAtlases';
+import { WORKSHOP_ART } from '../assets/legacyScenes';
+import { addCoverImage, addSceneFooter, addSceneHeading, addSceneVignette, ensureGridFrames } from '../assets/legacyUi';
+import { addBackButton } from './ui';
+
+type Recipe = {
+  name: string;
+  station: string;
+  need: string;
+  frame: number;
+  level: number;
+  x: number;
+  y: number;
+  canCraft: () => boolean;
+  craft: () => void;
+};
 
 export class WorkshopScene extends Phaser.Scene {
+  private status?: Phaser.GameObjects.Text;
+
   constructor() { super('WorkshopScene'); }
 
-  preload() { this.load.image('workshop-bg-v1', './assets/workshop-v1.png'); }
+  preload() {
+    this.load.image('workshop-appdeploy', WORKSHOP_ART);
+    this.load.image('materials-appdeploy', MATERIAL_ATLAS);
+  }
 
   create() {
-    this.cameras.main.setBackgroundColor('#30251f');
-    this.add.image(195, 340, 'workshop-bg-v1').setDisplaySize(510, 680);
-    this.add.rectangle(195, 340, 390, 680, 0x1b1009, 0.15);
+    const save = loadSave();
+    this.cameras.main.setBackgroundColor('#231a14');
+    addCoverImage(this, 'workshop-appdeploy');
+    addSceneVignette(this);
     addBackButton(this);
-    addTitle(this, '工房', '設備を直接使って加工する');
+    addSceneHeading(this, `THE ARTISAN'S HEARTH · LV.${save.workshopLevel}`, '職人の工房', '⚒', '素材をかたちに');
+    ensureGridFrames(this, 'materials-appdeploy', MATERIAL_ATLAS_COLUMNS, MATERIAL_ATLAS_ROWS, 'material');
 
-    const furnace = this.add.rectangle(105, 300, 145, 190, 0x3d2118, 0.45).setStrokeStyle(4, 0xf0ad55).setInteractive({ useHandCursor: true });
-    const flame = this.add.circle(105, 320, 40, 0xef7f38, 0.72);
-    this.tweens.add({ targets: flame, scaleX: 0.78, scaleY: 1.18, alpha: 0.95, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
-    this.add.text(105, 225, '炉', { fontSize: '24px', color: '#fff0bc' }).setOrigin(0.5);
-
-    const bench = this.add.rectangle(285, 325, 150, 105, 0x4d3925, 0.55).setStrokeStyle(4, 0xd4ae64).setInteractive({ useHandCursor: true });
-    this.add.text(285, 325, '作業台', { fontSize: '22px', color: '#fff0bc' }).setOrigin(0.5);
-
-    const status = this.add.text(195, 500, '炉：鉄鉱石3 → 鉄インゴット1\n作業台：鉄2＋銅1 → 歯車1', { fontSize: '15px', color: '#f2e7cf', align: 'center' }).setOrigin(0.5);
-    const upgrade=this.add.text(195,590,'工房を強化',{fontSize:'16px',color:'#fff0b5',backgroundColor:'#69462f',padding:{x:16,y:9}}).setOrigin(.5).setInteractive({useHandCursor:true});
-    upgrade.on('pointerup',()=>{const s=loadSave();if(s.workshopLevel>=3){status.setText('工房 Lv.3 MAX');return;}const ok=s.workshopLevel===1?s.gold>=220&&s.wood>=8&&s.ingots>=2&&s.copperIngots>=2:s.gold>=450&&s.wood>=12&&s.gears>=3&&s.lanterns>=1;if(!ok){status.setText('強化に必要なG・素材が足りない');return;}updateSave(v=>v.workshopLevel===1?{...v,workshopLevel:2,gold:v.gold-220,wood:v.wood-8,ingots:v.ingots-2,copperIngots:v.copperIngots-2}:{...v,workshopLevel:3,gold:v.gold-450,wood:v.wood-12,gears:v.gears-3,lanterns:v.lanterns-1});status.setText(`工房 Lv.${loadSave().workshopLevel}！`);});
-
-    furnace.on('pointerup', () => {
-      const save = loadSave();
-      if (save.iron < 3) {
-        status.setText(`精錬には鉄鉱石3個必要 / 現在 ${save.iron}`);
-        return;
+    const recipes: Recipe[] = [
+      {
+        name: '鉄インゴット',
+        station: '精錬炉',
+        need: '鉄鉱石 ×3',
+        frame: 5,
+        level: 1,
+        x: 100,
+        y: 221,
+        canCraft: () => loadSave().iron >= 3,
+        craft: () => updateSave((s) => ({
+          ...s,
+          iron: s.iron - 3,
+          ingots: s.ingots + 1,
+          crafted: s.crafted + 1,
+          discoveredItems: [...new Set([...s.discoveredItems, 'ingots'])]
+        }))
+      },
+      {
+        name: '銅インゴット',
+        station: '鋳造台',
+        need: '銅鉱石 ×3',
+        frame: 6,
+        level: 1,
+        x: 298,
+        y: 228,
+        canCraft: () => loadSave().copper >= 3,
+        craft: () => updateSave((s) => ({
+          ...s,
+          copper: s.copper - 3,
+          copperIngots: s.copperIngots + 1,
+          crafted: s.crafted + 1,
+          discoveredItems: [...new Set([...s.discoveredItems, 'copperIngots'])]
+        }))
+      },
+      {
+        name: '歯車',
+        station: '作業台',
+        need: '鉄インゴット ×2・銅 ×1',
+        frame: 7,
+        level: 1,
+        x: 107,
+        y: 418,
+        canCraft: () => {
+          const s = loadSave();
+          return s.ingots >= 2 && s.copperIngots >= 1;
+        },
+        craft: () => updateSave((s) => ({
+          ...s,
+          ingots: s.ingots - 2,
+          copperIngots: s.copperIngots - 1,
+          gears: s.gears + 1,
+          crafted: s.crafted + 1,
+          discoveredItems: [...new Set([...s.discoveredItems, 'gears'])]
+        }))
+      },
+      {
+        name: '開拓ランタン',
+        station: '細工作業台',
+        need: '銅 ×1・木材 ×2・石材 ×2',
+        frame: 8,
+        level: 2,
+        x: 291,
+        y: 432,
+        canCraft: () => {
+          const s = loadSave();
+          return s.workshopLevel >= 2 && s.copperIngots >= 1 && s.wood >= 2 && s.stone >= 2;
+        },
+        craft: () => updateSave((s) => ({
+          ...s,
+          copperIngots: s.copperIngots - 1,
+          wood: s.wood - 2,
+          stone: s.stone - 2,
+          lanterns: s.lanterns + 1,
+          crafted: s.crafted + 1,
+          discoveredItems: [...new Set([...s.discoveredItems, 'lanterns'])]
+        }))
       }
-      updateSave((current) => ({ ...current, iron: current.iron - 3, ingots: current.ingots + 1, crafted: current.crafted + 1, discoveredItems: [...new Set([...current.discoveredItems, 'ingots'])] }));
-      status.setText('鉄インゴットを1個精錬した！');
-      this.cameras.main.flash(180, 255, 136, 45, false);
-    });
-    bench.on('pointerup', () => {
-      const save = loadSave();
-      if (save.ingots < 2 || save.copperIngots < 1) {
-        if (save.copper >= 3 && save.copperIngots < 1) {
-          updateSave((s) => ({ ...s, copper: s.copper - 3, copperIngots: s.copperIngots + 1, crafted: s.crafted + 1, discoveredItems: [...new Set([...s.discoveredItems, 'copperIngots'])] }));
-          status.setText('銅インゴットを1個精錬した！ もう一度作業台を押そう');
+    ];
+
+    recipes.forEach((recipe) => {
+      const zone = this.add.zone(recipe.x, recipe.y, 121, 156)
+        .setDepth(12)
+        .setInteractive({ useHandCursor: true });
+
+      const ready = recipe.level <= save.workshopLevel && recipe.canCraft();
+      const marker = this.add.circle(recipe.x, recipe.y - 30, 6, ready ? 0x9ed9a5 : 0xc2b68f, 0.82)
+        .setStrokeStyle(1, 0xffe2a4, 0.8)
+        .setDepth(14);
+
+      const label = this.add.text(recipe.x, recipe.y + 58, recipe.station + '\n' + (recipe.level > save.workshopLevel ? `Lv.${recipe.level}で解放` : ready ? '製作できる' : '素材不足'), {
+        fontSize: '9px',
+        color: '#ffefc8',
+        align: 'center',
+        backgroundColor: '#11281de8',
+        padding: { x: 8, y: 6 }
+      }).setOrigin(0.5).setDepth(14);
+
+      zone.on('pointerover', () => label.setScale(1.04));
+      zone.on('pointerout', () => label.setScale(1));
+      zone.on('pointerup', () => {
+        const current = loadSave();
+        if (current.workshopLevel < recipe.level) {
+          this.status?.setText(`${recipe.name}は工房 Lv.${recipe.level}で解放`);
           return;
         }
-        status.setText(`歯車：鉄インゴット2・銅インゴット1が必要`);
+        if (!recipe.canCraft()) {
+          this.status?.setText(`${recipe.name}：${recipe.need}`);
+          return;
+        }
+
+        recipe.craft();
+        this.status?.setText(`${recipe.name}を製作した！`);
+        marker.setFillStyle(0xe2cf83, 1);
+
+        const icon = this.add.image(195, 360, 'materials-appdeploy', `material-${recipe.frame}`)
+          .setDisplaySize(76, 76)
+          .setDepth(30)
+          .setAlpha(0);
+        this.tweens.add({
+          targets: icon,
+          alpha: 1,
+          scale: { from: 0.65, to: 1.05 },
+          y: 325,
+          duration: 520,
+          yoyo: true,
+          hold: 420,
+          onComplete: () => icon.destroy()
+        });
+        this.cameras.main.flash(110, 242, 181, 93, false);
+      });
+    });
+
+    this.status = this.add.text(195, 536, '設備を直接タップして製作', {
+      fontSize: '11px',
+      color: '#f2e3c4',
+      align: 'center',
+      backgroundColor: '#0f1c17bc',
+      padding: { x: 10, y: 7 }
+    }).setOrigin(0.5).setDepth(20);
+
+    const upgrade = this.add.text(362, 580, `工房 Lv.${save.workshopLevel}`, {
+      fontSize: '9px',
+      color: '#f1d28b',
+      backgroundColor: '#17251ee8',
+      padding: { x: 9, y: 6 }
+    }).setOrigin(1, 0.5).setDepth(20).setInteractive({ useHandCursor: true });
+
+    upgrade.on('pointerup', () => {
+      const s = loadSave();
+      if (s.workshopLevel >= 3) {
+        this.status?.setText('工房 Lv.3 MAX');
         return;
       }
-      updateSave((current) => ({ ...current, ingots: current.ingots - 2, copperIngots: current.copperIngots - 1, gears: current.gears + 1, crafted: current.crafted + 1, discoveredItems: [...new Set([...current.discoveredItems, 'gears'])] }));
-      status.setText('ギアを1個製作した！');
-      this.tweens.add({ targets: bench, scaleY: 0.92, duration: 90, yoyo: true, repeat: 2 });
+      const ok = s.workshopLevel === 1
+        ? s.gold >= 220 && s.wood >= 8 && s.ingots >= 2 && s.copperIngots >= 2
+        : s.gold >= 450 && s.wood >= 12 && s.gears >= 3 && s.lanterns >= 1;
+      if (!ok) {
+        this.status?.setText('強化に必要なG・素材が足りない');
+        return;
+      }
+      updateSave((v) => v.workshopLevel === 1
+        ? { ...v, workshopLevel: 2, gold: v.gold - 220, wood: v.wood - 8, ingots: v.ingots - 2, copperIngots: v.copperIngots - 2 }
+        : { ...v, workshopLevel: 3, gold: v.gold - 450, wood: v.wood - 12, gears: v.gears - 3, lanterns: v.lanterns - 1 });
+      this.scene.restart();
     });
+
+    addSceneFooter(this, `製作 ${save.crafted}`, 'これまでの加工', '鉱石 → インゴット → 部品。設備そのものを触って加工する。');
   }
 }
