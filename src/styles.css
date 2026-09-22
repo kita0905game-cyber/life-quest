@@ -135,7 +135,8 @@ h1 { margin: 0; color: #ffe7a2; font-size: 23px; }
   box-shadow: 0 0 0 3px rgba(255,227,144,.08);
 }
 .pairing-form button,
-.pairing-link-button {
+.pairing-link-button,
+.pairing-action-button {
   border: 1px solid rgba(225,194,116,.45);
   border-radius: 12px;
   color: #102019;
@@ -143,12 +144,17 @@ h1 { margin: 0; color: #ffe7a2; font-size: 23px; }
   font-weight: 900;
   -webkit-tap-highlight-color: transparent;
 }
-.pairing-form button {
+.pairing-form button,
+.pairing-action-button {
   min-height: 48px;
   padding: 0 14px;
   font-size: 14px;
 }
-.pairing-form button:disabled { opacity: .45; }
+.pairing-action-button {
+  margin-top: 5px;
+}
+.pairing-form button:disabled,
+.pairing-action-button:disabled { opacity: .45; }
 .pairing-error {
   margin: 12px 0 0;
   padding: 10px 11px;
@@ -169,4 +175,41 @@ h1 { margin: 0; color: #ffe7a2; font-size: 23px; }
   color: #d9e6de;
   background: rgba(18,42,36,.84);
   font-size: 10px;
+}
+
+.pairing-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  color: #71867b;
+  font-size: 10px;
+}
+.pairing-divider::before,
+.pairing-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: rgba(225,194,116,.16);
+}
+.home-pair-message {
+  max-width: 430px;
+  margin: 3px 8px 0;
+  color: #b9cec2;
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
+}
+.home-pair-code {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(4,15,14,.55);
+  color: #ffe39a;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+.secondary-link {
+  opacity: .78;
 }
