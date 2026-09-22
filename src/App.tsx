@@ -31,6 +31,13 @@ function pairingErrorMessage(error: unknown) {
   return 'LUNA COREへ接続できませんでした。通信状態を確認して、もう一度試してください。';
 }
 
+function worldPhase(date: Date) {
+  const season = ['冬', '冬', '春', '春', '春', '夏', '夏', '夏', '秋', '秋', '秋', '冬'][date.getMonth()];
+  const hour = date.getHours();
+  const time = hour >= 5 && hour < 10 ? '朝' : hour < 17 ? '昼' : hour < 20 ? '夕方' : '夜';
+  return `${season}・${time}`;
+}
+
 export default function App() {
   const [save, setSave] = useState<LifeQuestSave>(() => loadSave());
   const [ready, setReady] = useState(false);
@@ -41,6 +48,8 @@ export default function App() {
   const [pairingCode, setPairingCode] = useState('');
   const [homePairMessage, setHomePairMessage] = useState('');
   const [homePairCode, setHomePairCode] = useState('');
+  const [activeScene, setActiveScene] = useState('TownScene');
+  const [clock, setClock] = useState(() => new Date());
 
   useEffect(() => {
     let active = true;
@@ -60,9 +69,14 @@ export default function App() {
     const onVisibility = () => {
       if (document.visibilityState === 'visible') refresh();
     };
+    const syncScene = (event: Event) => {
+      const custom = event as CustomEvent<string>;
+      if (active && custom.detail) setActiveScene(custom.detail);
+    };
 
     window.addEventListener('lifequest:save', syncSave);
     window.addEventListener('lifequest:cloud', syncCloud);
+    window.addEventListener('lifequest:scene', syncScene);
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', onVisibility);
 
@@ -77,9 +91,15 @@ export default function App() {
       active = false;
       window.removeEventListener('lifequest:save', syncSave);
       window.removeEventListener('lifequest:cloud', syncCloud);
+      window.removeEventListener('lifequest:scene', syncScene);
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', onVisibility);
     };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(new Date()), 60_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   async function handlePair(event: FormEvent<HTMLFormElement>) {
@@ -152,6 +172,10 @@ export default function App() {
     } catch {
       setPairingError('接続ページを開けませんでした。LUNA COREの接続状態を確認してください。');
     }
+  }
+
+  function navigateTo(sceneKey: string) {
+    window.dispatchEvent(new CustomEvent<string>('lifequest:navigate', { detail: sceneKey }));
   }
 
   if (!ready) {
@@ -241,6 +265,7 @@ export default function App() {
   }
 
   const progress = getLevel(save);
+  const nextLevelXp = Math.max(0, progress.targetXp - progress.currentXp);
 
   return (
     <main className="app-shell">
@@ -249,31 +274,67 @@ export default function App() {
           <span className="eyebrow">PERSONAL FRONTIER RPG · V0.5</span>
           <h1>LIFE QUEST</h1>
         </div>
-        <div className="player-level">YUMA <b>Lv.{progress.level}</b></div>
+        <div className="player-meta">
+          <div className="player-level">YUMA <b>Lv.{progress.level}</b></div>
+          <span className="world-phase">{worldPhase(clock)}</span>
+        </div>
       </header>
+
       <section className="status-panel" aria-label="冒険者ステータス">
-        <div className="status-row"><span>EXP {progress.currentXp}/{progress.targetXp}</span><span>累計 {save.xp} XP</span></div>
+        <div className="status-row">
+          <span>EXP {progress.currentXp}/{progress.targetXp}</span>
+          <span>累計 {save.xp} XP · あと {nextLevelXp}</span>
+        </div>
         <div className="xp-track"><i style={{ width: `${Math.min(100, progress.currentXp / progress.targetXp * 100)}%` }} /></div>
         <div className="resource-row">
-          <span>✦ {save.lq} LQ</span><span>🪙 {save.gold}G</span><span>⚡ {save.energy}</span><span>🪱 {save.bait}</span><span>🎫 {save.explorationTickets}</span><span>🎁 {save.chests}</span>
+          <span>✦ {save.lq}<small>LQ</small></span>
+          <span>◉ {save.gold}<small>G</small></span>
+          <span>⚡ {save.energy}</span>
+          <span>🪱 {save.bait}</span>
+          <span>🎫 {save.explorationTickets}</span>
+          <span>🎁 {save.chests}</span>
         </div>
       </section>
-      <section className="game-frame">
-        <LifeQuestGame />
-      </section>
+
+      <div className="game-stage">
+        <section className="game-frame">
+          <LifeQuestGame />
+        </section>
+
+        {activeScene === 'TownScene' && (
+          <nav className="town-nav" aria-label="街ショートカット">
+            <button className="active" type="button" onClick={() => navigateTo('TownScene')}>
+              <b>⌂</b><span>街</span>
+            </button>
+            <button type="button" onClick={() => navigateTo('RailwayScene')}>
+              <b>▰</b><span>鉄道</span>
+            </button>
+            <button type="button" onClick={() => navigateTo('RecordsScene')}>
+              <b>☰</b><span>記録</span>
+            </button>
+          </nav>
+        )}
+      </div>
+
       <div className="app-footer">
-        <p className="footnote">V0.5 — {cloudLabel[cloud]} / LUNA CORE正本・自動同期</p>
+        <div className="sync-line">
+          <span className={`sync-dot ${cloud === 'connected' ? 'ok' : ''}`} />
+          <span>{cloudLabel[cloud]} / LUNA CORE正本</span>
+        </div>
         {cloud === 'connected' && (
-          <>
-            <button className="pairing-link-button" type="button" onClick={handlePrepareHomeScreen}>
-              ホーム画面接続を準備
-            </button>
-            {homePairMessage && <p className="home-pair-message">{homePairMessage}</p>}
-            {homePairCode && <p className="home-pair-code">接続コード {homePairCode}</p>}
-            <button className="pairing-link-button secondary-link" type="button" onClick={handleOpenPairingPage}>
-              Safari接続ページを開く
-            </button>
-          </>
+          <details className="connection-tools">
+            <summary>接続設定</summary>
+            <div className="connection-actions">
+              <button className="pairing-link-button" type="button" onClick={handlePrepareHomeScreen}>
+                ホーム画面接続を準備
+              </button>
+              {homePairMessage && <p className="home-pair-message">{homePairMessage}</p>}
+              {homePairCode && <p className="home-pair-code">接続コード {homePairCode}</p>}
+              <button className="pairing-link-button secondary-link" type="button" onClick={handleOpenPairingPage}>
+                Safari接続ページを開く
+              </button>
+            </div>
+          </details>
         )}
       </div>
     </main>
