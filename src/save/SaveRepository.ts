@@ -180,18 +180,10 @@ export async function pairWithLunaCore(rawToken: string): Promise<LifeQuestSave>
   }
 }
 
-function shouldForceSafari() {
-  const isIos = /iP(hone|ad|od)/.test(navigator.userAgent);
-  const nav = navigator as Navigator & { standalone?: boolean };
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || nav.standalone === true;
-  return isIos && isStandalone;
-}
-
 export function getSafariPairingBridgeUrl() {
   const token = getToken();
   if (!token) throw new Error('pairing-required');
-  const target = `${API}/quest/browser-pair#lqToken=${encodeURIComponent(token)}`;
-  return shouldForceSafari() ? `x-safari-${target}` : target;
+  return `${API}/quest/browser-pair#lqToken=${encodeURIComponent(token)}`;
 }
 
 async function pushMutation(item: PendingMutation) {

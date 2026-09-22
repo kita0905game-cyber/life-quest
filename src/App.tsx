@@ -92,11 +92,11 @@ export default function App() {
     }
   }
 
-  function handleOpenSafari() {
+  function handleOpenPairingPage() {
     try {
       window.location.assign(getSafariPairingBridgeUrl());
     } catch {
-      setPairingError('Safari接続用リンクを作れませんでした。LUNA COREの接続状態を確認してください。');
+      setPairingError('接続ページを開けませんでした。LUNA COREの接続状態を確認してください。');
     }
   }
 
@@ -135,7 +135,7 @@ export default function App() {
 
           <div className="pairing-guide">
             <b>いちばん簡単</b>
-            <span>接続済みのLIFE QUESTで「Safariで開いて接続」を1回タップするだけです。</span>
+            <span>接続済みのLIFE QUESTで「Safari接続ページを開く」をタップし、接続URLをSafariへ渡します。</span>
           </div>
 
           <form className="pairing-form" onSubmit={handlePair}>
@@ -187,8 +187,8 @@ export default function App() {
       <div className="app-footer">
         <p className="footnote">V0.5 — {cloudLabel[cloud]} / LUNA CORE正本・自動同期</p>
         {cloud === 'connected' && (
-          <button className="pairing-link-button" type="button" onClick={handleOpenSafari}>
-            Safariで開いて接続
+          <button className="pairing-link-button" type="button" onClick={handleOpenPairingPage}>
+            Safari接続ページを開く
           </button>
         )}
       </div>
