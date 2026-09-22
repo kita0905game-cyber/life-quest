@@ -98,7 +98,7 @@ function normalizeSave(input: Partial<LifeQuestSave> | null | undefined): LifeQu
 function capturePairingToken() {
   try {
     const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const token = params.get('lqToken');
+    const token = params.get('lqToken')?.trim();
     if (!token) return;
     localStorage.setItem(TOKEN_KEY, token);
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
@@ -147,17 +147,44 @@ function savePending(items: PendingMutation[]) {
   try { localStorage.setItem(PENDING_KEY, JSON.stringify(items.slice(-100))); } catch { /* local save still works */ }
 }
 
-async function fetchCloudSave(): Promise<LifeQuestSave> {
-  const token = getToken();
-  if (!token) throw new Error('pairing-required');
+async function fetchCloudSaveWithToken(token: string): Promise<LifeQuestSave> {
   const response = await fetch(`${API}/quest/client/bootstrap`, {
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
     cache: 'no-store'
   });
-  if (!response.ok) throw new Error(`bootstrap-${response.status}`);
+  if (!response.ok) throw new Error(response.status === 401 ? 'invalid-token' : `bootstrap-${response.status}`);
   const data = await response.json() as { save?: Partial<LifeQuestSave> };
   if (!data.save) throw new Error('bootstrap-empty');
   return normalizeSave(data.save);
+}
+
+async function fetchCloudSave(): Promise<LifeQuestSave> {
+  const token = getToken();
+  if (!token) throw new Error('pairing-required');
+  return fetchCloudSaveWithToken(token);
+}
+
+export async function pairWithLunaCore(rawToken: string): Promise<LifeQuestSave> {
+  const token = rawToken.trim();
+  if (!token) throw new Error('token-required');
+  emitCloudStatus('connecting');
+  try {
+    const remote = await fetchCloudSaveWithToken(token);
+    localStorage.setItem(TOKEN_KEY, token);
+    const next = persistLocal(remote);
+    emitCloudStatus('connected');
+    return next;
+  } catch (error) {
+    emitCloudStatus('pairing-required');
+    throw error;
+  }
+}
+
+export function getBrowserPairingLink() {
+  const token = getToken();
+  if (!token) throw new Error('pairing-required');
+  const base = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+  return `${base}#lqToken=${encodeURIComponent(token)}`;
 }
 
 async function pushMutation(item: PendingMutation) {
